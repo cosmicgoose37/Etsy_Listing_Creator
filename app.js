@@ -22,6 +22,8 @@ const els = {
   fontChoice: document.getElementById('fontChoice'),
   productType: document.getElementById('productType'),
   productName: document.getElementById('productName'),
+  gradeLevel: document.getElementById('gradeLevel'),
+  subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
   bullets: document.getElementById('bullets'),
   badgeOptions: document.getElementById('badgeOptions'),
@@ -73,7 +75,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 18,
-    watermarkTargets: ['hero', 'laptop', 'phone'],
+    watermarkTargets: ['hero', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
 
@@ -608,6 +610,7 @@ function defaultCorners() {
 const mockupSlots = {
   laptop: { img: null, corners: defaultCorners() },
   phone: { img: null, corners: defaultCorners() },
+  custom: { img: null, corners: defaultCorners() },
 };
 
 const HANDLE_ORDER = ['tl', 'tr', 'br', 'bl'];
@@ -747,6 +750,7 @@ function setupMockupSlot(kind) {
 
 setupMockupSlot('laptop');
 setupMockupSlot('phone');
+setupMockupSlot('custom');
 
 // =========================================================================
 // Template generators
@@ -775,6 +779,8 @@ function getProduct() {
   return {
     type: els.productType.value,
     name: els.productName.value.trim() || 'Your Product Name',
+    gradeLevel: els.gradeLevel.value.trim(),
+    subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
     bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
@@ -820,10 +826,26 @@ function drawHero(ctx, brand, product, images, logoImg) {
     ctx.fillText(text, SIZE - tw - padX - 70, 125);
   }
 
+  const titleFontSize = 130, titleY = SIZE - 260;
+  const gradeSubject = [product.gradeLevel, product.subject].filter(Boolean).join('  •  ');
+  if (gradeSubject) {
+    ctx.font = `600 36px "${brand.font}"`;
+    const padX = 26, pillH = 62;
+    // Keep clear of the title's ascenders above its baseline, plus a gap.
+    const pillY = titleY - titleFontSize * 0.78 - 30 - pillH;
+    const tw = ctx.measureText(gradeSubject).width;
+    ctx.fillStyle = brand.primaryColor;
+    roundRect(ctx, 90, pillY, tw + padX * 2, pillH, pillH / 2);
+    ctx.fill();
+    ctx.fillStyle = contrastText(brand.primaryColor);
+    ctx.textAlign = 'left';
+    ctx.fillText(gradeSubject, 90 + padX, pillY + pillH / 2 + 13);
+  }
+
   ctx.fillStyle = textColor;
-  ctx.font = `700 130px "${brand.font}"`;
+  ctx.font = `700 ${titleFontSize}px "${brand.font}"`;
   ctx.textAlign = 'left';
-  const nameBottom = wrapText(ctx, product.name, 90, SIZE - 260, SIZE - 180, 140, 'left');
+  const nameBottom = wrapText(ctx, product.name, 90, titleY, SIZE - 180, 140, 'left');
 
   if (product.tagline) {
     ctx.font = `500 52px "${brand.font}"`;
@@ -969,6 +991,66 @@ function drawPhotoMockup(ctx, brand, slot, designImg, watermark) {
     drawWatermark(ctx, watermark.text, watermark, bounds);
     ctx.restore();
   }
+}
+
+function drawMultiPageGrid(ctx, brand, product, images) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText(brand.companyName.toUpperCase(), SIZE / 2, 110);
+
+  ctx.fillStyle = textColor;
+  ctx.font = `700 78px "${brand.font}"`;
+  ctx.fillText(`See All ${images.length} Pages`, SIZE / 2, 210);
+
+  const margin = 90, gap = 26;
+  const gridTop = 270, gridBottom = SIZE - 70;
+  const n = images.length;
+  const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
+  const rows = Math.ceil(n / cols);
+  const cellW = (SIZE - margin * 2 - (cols - 1) * gap) / cols;
+  const cellH = (gridBottom - gridTop - (rows - 1) * gap) / rows;
+  const badgeR = Math.max(12, Math.min(22, Math.min(cellW, cellH) * 0.15));
+
+  images.forEach((item, i) => {
+    const col = i % cols, row = Math.floor(i / cols);
+    const x = margin + col * (cellW + gap);
+    const y = gridTop + row * (cellH + gap);
+
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = 24;
+    ctx.shadowOffsetY = 10;
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, x, y, cellW, cellH, 14);
+    ctx.fill();
+    ctx.restore();
+
+    const pad = Math.min(14, Math.min(cellW, cellH) * 0.08);
+    const innerX = x + pad, innerY = y + pad, innerW = cellW - pad * 2, innerH = cellH - pad * 2;
+    ctx.save();
+    roundRect(ctx, x, y, cellW, cellH, 14);
+    ctx.clip();
+    const img = item.img;
+    const scale = Math.min(innerW / img.width, innerH / img.height);
+    const dw = img.width * scale, dh = img.height * scale;
+    const dx = innerX + (innerW - dw) / 2, dy = innerY + (innerH - dh) / 2;
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+
+    ctx.fillStyle = brand.primaryColor;
+    ctx.beginPath();
+    ctx.arc(x + badgeR + 8, y + badgeR + 8, badgeR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = contrastText(brand.primaryColor);
+    ctx.font = `700 ${Math.round(badgeR * 1.1)}px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(i + 1), x + badgeR + 8, y + badgeR + 8 + badgeR * 0.35);
+  });
 }
 
 function drawIncluded(ctx, brand, product) {
@@ -1117,11 +1199,18 @@ const BADGE_TAG_MAP = {
   'printable': 'printable',
   'high resolution': 'high resolution',
   'diy editable': 'diy editable',
+  'no prep': 'no prep',
+  'print & go': 'print and go',
+  'answer key included': 'answer key',
+  'black & white + color': 'bw and color',
+  'google slides included': 'google slides',
+  'common core aligned': 'common core',
 };
 
 const TYPE_INFO = {
   template: { phrase: 'Printable Template', tags: ['printable template', 'canva template', 'digital template'] },
   mockup: { phrase: 'Digital Mockup', tags: ['digital mockup', 'phone mockup', 'laptop mockup'] },
+  classroom: { phrase: 'Printable Worksheet', tags: ['printable worksheet', 'classroom resource', 'teacher resource'] },
   graphic: { phrase: 'Digital Clipart', tags: ['digital clipart', 'clip art', 'png graphics'] },
   mixed: { phrase: 'Digital Download', tags: ['digital download', 'instant download'] },
 };
@@ -1161,6 +1250,11 @@ function generateSEO(brand, product) {
   const typeInfo = TYPE_INFO[product.type] || TYPE_INFO.mixed;
 
   // ---- Tags ----
+  const gradeSubjectNgrams = [
+    ...ngramsFromText(product.gradeLevel, [2, 1]),
+    ...ngramsFromText(product.subject, [2, 1]),
+  ];
+  const gradeSubjectPhrase = [product.gradeLevel, product.subject].filter(Boolean).join(' ').trim().toLowerCase();
   const nameNgrams = ngramsFromText(product.name, [3, 2, 1]);
   const badgeTags = product.badges
     .map(b => BADGE_TAG_MAP[b.toLowerCase()] || b.toLowerCase())
@@ -1170,6 +1264,8 @@ function generateSEO(brand, product) {
   const generic = ['digital download', 'instant download', 'printable pdf'];
 
   const tagPool = [
+    gradeSubjectPhrase,
+    ...gradeSubjectNgrams,
     ...nameNgrams,
     ...badgeTags,
     ...typeInfo.tags,
@@ -1193,10 +1289,12 @@ function generateSEO(brand, product) {
     return out.join(sep);
   };
 
+  const gradeSubjectTitle = [product.gradeLevel, product.subject].filter(Boolean).join(' ');
+
   const candidates = [
-    joinUnique([product.name, typeInfo.phrase, ...product.badges.slice(0, 3)], ', '),
-    joinUnique([product.name, typeInfo.phrase, product.tagline], ' - '),
-    joinUnique([typeInfo.phrase, product.name, product.badges.join(', ')], ' - '),
+    joinUnique([gradeSubjectTitle, product.name, typeInfo.phrase, ...product.badges.slice(0, 3)], ', '),
+    joinUnique([product.name, gradeSubjectTitle, typeInfo.phrase, product.tagline], ' - '),
+    joinUnique([typeInfo.phrase, gradeSubjectTitle, product.name, product.badges.join(', ')], ' - '),
   ].map(truncate).filter((v, i, arr) => v && arr.indexOf(v) === i);
 
   return { titles: candidates, tags };
@@ -1310,30 +1408,54 @@ els.form.addEventListener('submit', async e => {
   const watermark = getWatermarkConfig(brand);
   const watermarkFor = (key) => (watermark.enabled && watermark.targets.has(key)) ? watermark : null;
 
-  const templates = [
-    { name: '01 Hero Cover', key: 'hero', fn: (ctx) => drawHero(ctx, brand, product, uploadedImages, logoImg) },
+  // Candidate templates, in upload order. Some only appear when there's data
+  // for them (a custom mockup photo, or enough pages for a preview grid) —
+  // numbering below is assigned after filtering, so the sequence stays clean.
+  const candidates = [
+    { label: 'Hero Cover', key: 'hero', include: true, fn: (ctx) => drawHero(ctx, brand, product, uploadedImages, logoImg) },
     {
-      name: '02 Laptop Mockup',
+      label: 'Laptop Mockup',
       key: 'laptop',
+      include: true,
       fn: (ctx) => mockupSlots.laptop.img
         ? drawPhotoMockup(ctx, brand, mockupSlots.laptop, designImg, watermarkFor('laptop'))
         : drawIllustratedMockup(ctx, brand, product, uploadedImages, 'laptop', watermarkFor('laptop')),
     },
     {
-      name: '03 Phone Mockup',
+      label: 'Phone Mockup',
       key: 'phone',
+      include: true,
       fn: (ctx) => mockupSlots.phone.img
         ? drawPhotoMockup(ctx, brand, mockupSlots.phone, designImg, watermarkFor('phone'))
         : drawIllustratedMockup(ctx, brand, product, uploadedImages, 'phone', watermarkFor('phone')),
     },
-    { name: "04 What's Included", key: 'included', fn: (ctx) => drawIncluded(ctx, brand, product) },
-    { name: '05 Brand Style Guide', key: 'palette', fn: (ctx) => drawPalette(ctx, brand, product) },
-    { name: '06 Feature Badges', key: 'badges', fn: (ctx) => drawBadges(ctx, brand, product) },
+    {
+      label: 'Custom Mockup',
+      key: 'custom',
+      include: !!mockupSlots.custom.img,
+      fn: (ctx) => drawPhotoMockup(ctx, brand, mockupSlots.custom, designImg, watermarkFor('custom')),
+    },
+    {
+      label: 'Multi-Page Preview',
+      key: 'pages',
+      include: uploadedImages.length >= 2,
+      fn: (ctx) => drawMultiPageGrid(ctx, brand, product, uploadedImages),
+    },
+    { label: "What's Included", key: 'included', include: true, fn: (ctx) => drawIncluded(ctx, brand, product) },
+    { label: 'Brand Style Guide', key: 'palette', include: true, fn: (ctx) => drawPalette(ctx, brand, product) },
+    { label: 'Feature Badges', key: 'badges', include: true, fn: (ctx) => drawBadges(ctx, brand, product) },
   ];
 
-  // Laptop/phone mockups draw their own watermark internally, clipped to the
-  // screen area — applying it again here would double it up across the whole canvas.
-  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'palette', 'badges']);
+  const templates = candidates.filter(t => t.include).map((t, i) => ({
+    ...t,
+    name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
+  }));
+
+  // Laptop/phone/custom mockups draw their own watermark internally, clipped
+  // to the screen/display area — applying it again here would double it up
+  // across the whole canvas. The multi-page grid has no such area, so it
+  // gets the full-canvas treatment like the other flat graphics.
+  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'palette', 'badges', 'pages']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
@@ -1349,7 +1471,7 @@ els.form.addEventListener('submit', async e => {
   renderSEO(brand, product);
 
   els.downloadAllBtn.disabled = false;
-  setStatus('Done — 6 images ready.');
+  setStatus(`Done — ${templates.length} images ready.`);
 });
 
 els.downloadAllBtn.addEventListener('click', async () => {

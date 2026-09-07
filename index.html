@@ -86,6 +86,7 @@
           <select id="productType">
             <option value="template">Digital template / printable</option>
             <option value="mockup">Needs device mockup (screen-based)</option>
+            <option value="classroom">Classroom resource / worksheet</option>
             <option value="graphic">Graphic / clipart / font pack</option>
             <option value="mixed" selected>Mix / not sure</option>
           </select>
@@ -94,6 +95,15 @@
         <label>Product Name
           <input type="text" id="productName" placeholder="e.g. Minimalist Budget Planner" required />
         </label>
+
+        <div class="two-col">
+          <label>Grade Level <span class="hint">(optional)</span>
+            <input type="text" id="gradeLevel" placeholder="e.g. 2nd-4th Grade" />
+          </label>
+          <label>Subject <span class="hint">(optional)</span>
+            <input type="text" id="subject" placeholder="e.g. Math, Phonics" />
+          </label>
+        </div>
 
         <label>Tagline <span class="hint">(short, shown on cover image)</span>
           <input type="text" id="tagline" placeholder="e.g. Editable in Canva • Instant Download" />
@@ -114,6 +124,12 @@ Instant Digital Download"></textarea>
           <label class="chip"><input type="checkbox" value="Printable"> Printable</label>
           <label class="chip"><input type="checkbox" value="High Resolution"> High Resolution</label>
           <label class="chip"><input type="checkbox" value="DIY Editable"> DIY Editable</label>
+          <label class="chip"><input type="checkbox" value="No Prep"> No Prep</label>
+          <label class="chip"><input type="checkbox" value="Print & Go"> Print & Go</label>
+          <label class="chip"><input type="checkbox" value="Answer Key Included"> Answer Key Included</label>
+          <label class="chip"><input type="checkbox" value="Black & White + Color"> Black & White + Color</label>
+          <label class="chip"><input type="checkbox" value="Google Slides Included"> Google Slides Included</label>
+          <label class="chip"><input type="checkbox" value="Common Core Aligned"> Common Core Aligned</label>
         </div>
         <label>Custom badge <span class="hint">(optional)</span>
           <input type="text" id="customBadge" placeholder="e.g. Made in the USA" />
@@ -132,8 +148,8 @@ Instant Digital Download"></textarea>
       </section>
 
       <section class="field-group">
-        <h2>Device Mockup Photos <span class="hint">optional</span></h2>
-        <p class="hint">Upload a real photo (yours, or a mockup photo you have rights to use) and drag the corner dots onto the screen. Skip this and we'll use a simple illustrated frame instead.</p>
+        <h2>Mockup Photos <span class="hint">optional</span></h2>
+        <p class="hint">Upload a real photo — a device screen, a bulletin board, a classroom wall, a binder, anything — and drag the corner dots onto the area where your design should appear. Skip laptop/phone and we'll use a simple illustrated frame instead.</p>
 
         <div class="mockup-slot" data-kind="laptop">
           <label>Laptop mockup photo
@@ -157,6 +173,19 @@ Instant Digital Download"></textarea>
             <div class="pin-canvas-actions">
               <span class="hint">Drag corners to match the screen</span>
               <button type="button" class="link-btn reset-pin-btn" data-kind="phone">reset corners</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mockup-slot" data-kind="custom">
+          <label>Custom mockup photo <span class="hint">(bulletin board, wall, binder, folder, etc.)</span>
+            <input type="file" accept="image/*" class="mockup-upload" data-kind="custom" />
+          </label>
+          <div class="pin-canvas-wrap" id="pinWrap_custom" hidden>
+            <canvas id="pinCanvas_custom" width="460" height="460"></canvas>
+            <div class="pin-canvas-actions">
+              <span class="hint">Drag corners to match the display area</span>
+              <button type="button" class="link-btn reset-pin-btn" data-kind="custom">reset corners</button>
             </div>
           </div>
         </div>
@@ -197,6 +226,8 @@ Instant Digital Download"></textarea>
             <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
             <label class="chip"><input type="checkbox" value="laptop" checked> Laptop Mockup</label>
             <label class="chip"><input type="checkbox" value="phone" checked> Phone Mockup</label>
+            <label class="chip"><input type="checkbox" value="custom" checked> Custom Mockup</label>
+            <label class="chip"><input type="checkbox" value="pages" checked> Multi-Page Preview</label>
             <label class="chip"><input type="checkbox" value="included"> What's Included</label>
             <label class="chip"><input type="checkbox" value="palette"> Brand Style Guide</label>
             <label class="chip"><input type="checkbox" value="badges"> Feature Badges</label>
