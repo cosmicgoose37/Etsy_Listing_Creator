@@ -65,6 +65,7 @@ const els = {
   textColorHex: document.getElementById('textColorHex'),
   fontChoice: document.getElementById('fontChoice'),
   productType: document.getElementById('productType'),
+  gradeSubjectRow: document.getElementById('gradeSubjectRow'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -312,6 +313,12 @@ els.textColorAuto.addEventListener('change', () => {
   els.textColorField.hidden = els.textColorAuto.checked;
   persistFormToActiveProfile();
 });
+
+function syncGradeSubjectVisibility() {
+  els.gradeSubjectRow.hidden = els.productType.value !== 'classroom';
+}
+els.productType.addEventListener('change', syncGradeSubjectVisibility);
+syncGradeSubjectVisibility();
 
 // ---- hex <-> color-picker sync ----
 function isValidHex(v) {
