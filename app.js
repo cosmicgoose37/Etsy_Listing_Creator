@@ -506,13 +506,6 @@ function contrastText(hex) {
   return luminance(hex) > 0.6 ? '#2b2320' : '#ffffff';
 }
 
-function shade(hex, amt) {
-  const { r, g, b } = hexToRgb(hex);
-  const clamp = v => Math.max(0, Math.min(255, v));
-  const nr = clamp(r + amt), ng = clamp(g + amt), nb = clamp(b + amt);
-  return `rgb(${nr},${ng},${nb})`;
-}
-
 async function ensureFont(family) {
   try {
     await Promise.all([
@@ -1138,49 +1131,6 @@ function drawIncluded(ctx, brand, product) {
   });
 }
 
-function drawPalette(ctx, brand, product) {
-  ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  ctx.fillStyle = textColorFor(brand, contrastText('#ffffff'));
-  ctx.font = `700 52px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Brand Style Guide', SIZE / 2, 160);
-
-  const colors = [brand.primaryColor, brand.accentColor, shade(brand.primaryColor, 40), shade(brand.accentColor, -40)];
-  const swW = 320, gap = 40, totalW = colors.length * swW + (colors.length - 1) * gap;
-  const startX = (SIZE - totalW) / 2, y = 260;
-  colors.forEach((c, i) => {
-    const x = startX + i * (swW + gap);
-    ctx.fillStyle = c;
-    roundRect(ctx, x, y, swW, swW * 0.6, 20);
-    ctx.fill();
-    ctx.strokeStyle = '#e8e0d6';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    ctx.fillStyle = '#2b2320';
-    ctx.font = `500 28px "${brand.font}"`;
-    ctx.textAlign = 'center';
-    ctx.fillText(c.startsWith('#') ? c.toUpperCase() : c, x + swW / 2, y + swW * 0.6 + 44);
-  });
-
-  ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 340px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText('Aa', SIZE / 2, 1220);
-
-  ctx.fillStyle = '#2b2320';
-  ctx.font = `600 60px "${brand.font}"`;
-  ctx.fillText(product.name, SIZE / 2, 1360);
-
-  ctx.fillStyle = '#8a8078';
-  ctx.font = `400 34px "${brand.font}"`;
-  ctx.fillText(`Font: ${brand.font}`, SIZE / 2, 1430);
-
-  ctx.fillStyle = brand.primaryColor;
-  ctx.font = `600 36px "${brand.font}"`;
-  ctx.fillText(brand.companyName, SIZE / 2, SIZE - 100);
-}
-
 function drawBadges(ctx, brand, product) {
   ctx.fillStyle = brand.primaryColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -1486,7 +1436,6 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawMultiPageGrid(ctx, brand, product, uploadedImages),
     },
     { label: "What's Included", key: 'included', include: true, fn: (ctx) => drawIncluded(ctx, brand, product) },
-    { label: 'Brand Style Guide', key: 'palette', include: true, fn: (ctx) => drawPalette(ctx, brand, product) },
     { label: 'Feature Badges', key: 'badges', include: true, fn: (ctx) => drawBadges(ctx, brand, product) },
   ];
 
@@ -1499,7 +1448,7 @@ els.form.addEventListener('submit', async e => {
   // to the screen/display area — applying it again here would double it up
   // across the whole canvas. The multi-page grid has no such area, so it
   // gets the full-canvas treatment like the other flat graphics.
-  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'palette', 'badges', 'pages']);
+  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'badges', 'pages']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
