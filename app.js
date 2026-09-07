@@ -1,6 +1,50 @@
 const SIZE = 2000;
 const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
+const THEME_KEY = 'etsyImageMaker.theme';
+
+// =========================================================================
+// Theme (dark mode)
+// =========================================================================
+function systemPrefersDark() {
+  return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
+function isEffectivelyDark() {
+  const explicit = document.documentElement.getAttribute('data-theme');
+  return explicit === 'dark' || (!explicit && systemPrefersDark());
+}
+
+function updateThemeIcon() {
+  const dark = isEffectivelyDark();
+  const sun = document.getElementById('themeIconSun');
+  const moon = document.getElementById('themeIconMoon');
+  // toggleAttribute (not .hidden=) — some browsers don't reflect the JS
+  // `hidden` property back to the content attribute on SVG elements, which
+  // silently breaks the CSS [hidden] selector these icons rely on.
+  if (sun) sun.toggleAttribute('hidden', dark);
+  if (moon) moon.toggleAttribute('hidden', !dark);
+}
+
+function initTheme() {
+  updateThemeIcon();
+  const toggle = document.getElementById('themeToggle');
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      const next = isEffectivelyDark() ? 'light' : 'dark';
+      document.documentElement.setAttribute('data-theme', next);
+      try { localStorage.setItem(THEME_KEY, next); } catch (e) { /* ignore */ }
+      updateThemeIcon();
+    });
+  }
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (!document.documentElement.getAttribute('data-theme')) updateThemeIcon();
+    });
+  }
+}
+
+initTheme();
 
 const els = {
   form: document.getElementById('listingForm'),

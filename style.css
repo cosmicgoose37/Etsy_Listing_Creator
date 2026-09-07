@@ -1,13 +1,55 @@
 :root {
+  color-scheme: light dark;
   --ink: #2b2320;
   --paper: #fdfaf6;
   --panel: #ffffff;
   --line: #e8e0d6;
   --accent-warm: #c96b4f;
   --muted: #8a8078;
+  --input-bg: #ffffff;
+  --drop-highlight: #fbf1ec;
+  --btn-primary-bg: #2b2320;
+  --btn-primary-fg: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #f1ece5;
+    --paper: #1b1714;
+    --panel: #241f1a;
+    --line: #3c342c;
+    --accent-warm: #e2916d;
+    --muted: #a89a8d;
+    --input-bg: #2a241e;
+    --drop-highlight: #3a2c22;
+    --btn-primary-bg: #f1ece5;
+    --btn-primary-fg: #201a15;
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ink: #f1ece5;
+  --paper: #1b1714;
+  --panel: #241f1a;
+  --line: #3c342c;
+  --accent-warm: #e2916d;
+  --muted: #a89a8d;
+  --input-bg: #2a241e;
+  --drop-highlight: #3a2c22;
+  --btn-primary-bg: #f1ece5;
+  --btn-primary-fg: #201a15;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 * { box-sizing: border-box; }
+
+/* Browsers don't reliably apply the default [hidden]{display:none} rule to
+   inline SVG elements — enforce it explicitly so el.hidden always works. */
+[hidden] { display: none !important; }
 
 html, body {
   margin: 0;
@@ -38,6 +80,22 @@ html, body {
 .brand-mark h1 { font-size: 16px; margin: 0; font-weight: 600; }
 
 .topbar-actions { display: flex; align-items: center; gap: 14px; }
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: none;
+  color: var(--ink);
+  cursor: pointer;
+  padding: 0;
+  flex: none;
+}
+.theme-toggle:hover { background: var(--input-bg); }
 .status-msg { font-size: 12.5px; color: var(--muted); }
 
 .btn {
@@ -51,7 +109,7 @@ html, body {
   transition: opacity .15s ease, transform .1s ease;
 }
 .btn:disabled { opacity: .45; cursor: not-allowed; }
-.btn-primary { background: var(--ink); color: #fff; }
+.btn-primary { background: var(--btn-primary-bg); color: var(--btn-primary-fg); }
 .btn-primary:not(:disabled):hover { opacity: .85; }
 .btn-primary:not(:disabled):active { transform: scale(0.98); }
 .btn-generate { width: 100%; margin-top: 18px; padding: 13px; font-size: 14px; }
@@ -138,7 +196,7 @@ textarea {
   border-radius: 7px;
   font-family: inherit;
   font-size: 13.5px;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--ink);
 }
 textarea { resize: vertical; }
@@ -150,7 +208,7 @@ input[type="color"] {
   border: 1px solid var(--line);
   border-radius: 7px;
   padding: 3px;
-  background: #fff;
+  background: var(--input-bg);
 }
 
 .color-field {
@@ -244,7 +302,7 @@ input[type="range"] {
   border-radius: 10px;
   border: 1px solid var(--line);
   cursor: grab;
-  background: #eee;
+  background: var(--input-bg);
   touch-action: none;
 }
 .pin-canvas-actions {
@@ -267,7 +325,7 @@ input[type="range"] {
   border: 1px solid var(--line);
   border-radius: 6px;
   padding: 4px;
-  background: #fff;
+  background: var(--input-bg);
 }
 
 .drop-zone {
@@ -282,7 +340,7 @@ input[type="range"] {
 }
 .drop-zone.dragover {
   border-color: var(--accent-warm);
-  background: #fbf1ec;
+  background: var(--drop-highlight);
 }
 
 .image-thumbs {
@@ -388,7 +446,7 @@ input[type="range"] {
   font-family: inherit;
   white-space: nowrap;
 }
-.seo-title-row button:hover { background: #fff; }
+.seo-title-row button:hover { background: var(--input-bg); }
 
 .seo-tags-header {
   display: flex;
@@ -419,7 +477,7 @@ input[type="range"] {
   width: 100%;
   aspect-ratio: 1 / 1;
   display: block;
-  background: #fff;
+  background: var(--input-bg);
 }
 .card-footer {
   display: flex;
