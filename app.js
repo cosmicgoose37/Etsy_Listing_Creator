@@ -70,6 +70,7 @@ const els = {
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
   bullets: document.getElementById('bullets'),
+  howItWorks: document.getElementById('howItWorks'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
   dropZone: document.getElementById('dropZone'),
@@ -820,6 +821,7 @@ function getProduct() {
     subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
     bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
+    howItWorks: els.howItWorks.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
   };
 }
@@ -1131,6 +1133,66 @@ function drawIncluded(ctx, brand, product) {
   });
 }
 
+const DEFAULT_HOW_IT_WORKS_STEPS = [
+  'Purchase & instant download',
+  'Open your files',
+  'Edit or print',
+  'Enjoy!',
+];
+
+function drawHowItWorks(ctx, brand, product) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 46px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText(brand.companyName.toUpperCase(), SIZE / 2, 160);
+
+  ctx.fillStyle = textColor;
+  ctx.font = `700 90px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('How It Works', SIZE / 2, 300);
+
+  const steps = (product.howItWorks.length ? product.howItWorks : DEFAULT_HOW_IT_WORKS_STEPS).slice(0, 6);
+  const top = 440, bottom = SIZE - 150;
+  const n = steps.length;
+  const rowH = (bottom - top) / n;
+  const circleR = 60, circleX = SIZE * 0.18;
+  const textX = circleX + circleR + 60;
+  const textMaxW = SIZE - textX - 110;
+
+  steps.forEach((step, i) => {
+    const cy = top + rowH * i + rowH / 2;
+
+    if (i < n - 1) {
+      ctx.strokeStyle = brand.primaryColor;
+      ctx.globalAlpha = 0.35;
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(circleX, cy + circleR);
+      ctx.lineTo(circleX, cy + rowH - circleR);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    ctx.fillStyle = brand.primaryColor;
+    ctx.beginPath();
+    ctx.arc(circleX, cy, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = contrastText(brand.primaryColor);
+    ctx.font = `700 56px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(i + 1), circleX, cy + 20);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `600 50px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    wrapText(ctx, step, textX, cy + 18, textMaxW, 56, 'left');
+  });
+}
+
 function drawBadges(ctx, brand, product) {
   ctx.fillStyle = brand.primaryColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -1436,6 +1498,7 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawMultiPageGrid(ctx, brand, product, uploadedImages),
     },
     { label: "What's Included", key: 'included', include: true, fn: (ctx) => drawIncluded(ctx, brand, product) },
+    { label: 'How It Works', key: 'steps', include: true, fn: (ctx) => drawHowItWorks(ctx, brand, product) },
     { label: 'Feature Badges', key: 'badges', include: true, fn: (ctx) => drawBadges(ctx, brand, product) },
   ];
 
@@ -1448,7 +1511,7 @@ els.form.addEventListener('submit', async e => {
   // to the screen/display area — applying it again here would double it up
   // across the whole canvas. The multi-page grid has no such area, so it
   // gets the full-canvas treatment like the other flat graphics.
-  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'badges', 'pages']);
+  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'steps', 'badges', 'pages']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
