@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Etsy Listing Image Maker</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="brand-mark">
+    <span class="dot"></span>
+    <h1>Etsy Listing Image Maker</h1>
+  </div>
+  <div class="topbar-actions">
+    <span id="statusMsg" class="status-msg"></span>
+    <button id="downloadAllBtn" class="btn btn-primary" disabled>Download All (ZIP)</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="panel">
+    <form id="listingForm" autocomplete="off">
+
+      <section class="field-group">
+        <h2>Brand</h2>
+
+        <div class="profile-row">
+          <select id="profileSelect" autocomplete="off"></select>
+          <button type="button" id="newProfileBtn" class="link-btn">+ new</button>
+          <button type="button" id="renameProfileBtn" class="link-btn">rename</button>
+          <button type="button" id="deleteProfileBtn" class="link-btn">delete</button>
+        </div>
+
+        <label>Shop / Company Name
+          <input type="text" id="companyName" placeholder="e.g. Willow & Ink Co." required />
+        </label>
+
+        <label>Logo <span class="hint">(optional, transparent PNG works best)</span>
+          <input type="file" id="logoUpload" accept="image/*" />
+        </label>
+        <div id="logoPreview" class="logo-preview"></div>
+
+        <div class="two-col">
+          <label>Primary color
+            <div class="color-field">
+              <input type="color" id="primaryColor" value="#c96b4f" />
+              <input type="text" id="primaryColorHex" class="hex-input" value="#C96B4F" maxlength="7" spellcheck="false" />
+            </div>
+          </label>
+          <label>Accent color
+            <div class="color-field">
+              <input type="color" id="accentColor" value="#f4e9dd" />
+              <input type="text" id="accentColorHex" class="hex-input" value="#F4E9DD" maxlength="7" spellcheck="false" />
+            </div>
+          </label>
+        </div>
+
+        <label>Text Color</label>
+        <label class="chip-toggle" style="margin-bottom: 10px;">
+          <input type="checkbox" id="textColorAuto" checked /> Auto (best contrast per image)
+        </label>
+        <div class="color-field" id="textColorField" hidden>
+          <input type="color" id="textColor" value="#2b2320" />
+          <input type="text" id="textColorHex" class="hex-input" value="#2B2320" maxlength="7" spellcheck="false" />
+        </div>
+
+        <label>Font style
+          <select id="fontChoice">
+            <option value="Poppins">Poppins (clean/modern)</option>
+            <option value="Playfair Display">Playfair Display (elegant serif)</option>
+            <option value="Montserrat">Montserrat (bold/minimal)</option>
+            <option value="Quicksand">Quicksand (soft/rounded)</option>
+            <option value="Caveat">Caveat (handwritten script)</option>
+            <option value="Lora">Lora (classic serif)</option>
+            <option value="Bebas Neue">Bebas Neue (display/impact)</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="field-group">
+        <h2>Product</h2>
+
+        <label>Product Type
+          <select id="productType">
+            <option value="template">Digital template / printable</option>
+            <option value="mockup">Needs device mockup (screen-based)</option>
+            <option value="graphic">Graphic / clipart / font pack</option>
+            <option value="mixed" selected>Mix / not sure</option>
+          </select>
+        </label>
+
+        <label>Product Name
+          <input type="text" id="productName" placeholder="e.g. Minimalist Budget Planner" required />
+        </label>
+
+        <label>Tagline <span class="hint">(short, shown on cover image)</span>
+          <input type="text" id="tagline" placeholder="e.g. Editable in Canva • Instant Download" />
+        </label>
+
+        <label>What's Included <span class="hint">(one item per line)</span>
+          <textarea id="bullets" rows="5" placeholder="12 Printable Pages
+Letter &amp; A4 Size
+PDF + Canva Template
+Instant Digital Download"></textarea>
+        </label>
+
+        <label>Badges <span class="hint">(select what applies)</span></label>
+        <div id="badgeOptions" class="badge-options">
+          <label class="chip"><input type="checkbox" value="Instant Download" checked> Instant Download</label>
+          <label class="chip"><input type="checkbox" value="Editable in Canva"> Editable in Canva</label>
+          <label class="chip"><input type="checkbox" value="Commercial Use"> Commercial Use</label>
+          <label class="chip"><input type="checkbox" value="Printable"> Printable</label>
+          <label class="chip"><input type="checkbox" value="High Resolution"> High Resolution</label>
+          <label class="chip"><input type="checkbox" value="DIY Editable"> DIY Editable</label>
+        </div>
+        <label>Custom badge <span class="hint">(optional)</span>
+          <input type="text" id="customBadge" placeholder="e.g. Made in the USA" />
+        </label>
+      </section>
+
+      <section class="field-group">
+        <h2>Product Images</h2>
+        <label>Upload photos / mockups <span class="hint">(drag multiple, or click)</span></label>
+        <div id="dropZone" class="drop-zone">
+          <p>Drop images here or click to browse</p>
+          <input type="file" id="imageUpload" accept="image/*" multiple hidden />
+        </div>
+        <div id="imageThumbs" class="image-thumbs"></div>
+        <p class="hint">First image is used as the hero/featured graphic; you can reorder by dragging thumbnails.</p>
+      </section>
+
+      <section class="field-group">
+        <h2>Device Mockup Photos <span class="hint">optional</span></h2>
+        <p class="hint">Upload a real photo (yours, or a mockup photo you have rights to use) and drag the corner dots onto the screen. Skip this and we'll use a simple illustrated frame instead.</p>
+
+        <div class="mockup-slot" data-kind="laptop">
+          <label>Laptop mockup photo
+            <input type="file" accept="image/*" class="mockup-upload" data-kind="laptop" />
+          </label>
+          <div class="pin-canvas-wrap" id="pinWrap_laptop" hidden>
+            <canvas id="pinCanvas_laptop" width="460" height="460"></canvas>
+            <div class="pin-canvas-actions">
+              <span class="hint">Drag corners to match the screen</span>
+              <button type="button" class="link-btn reset-pin-btn" data-kind="laptop">reset corners</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mockup-slot" data-kind="phone">
+          <label>Phone mockup photo
+            <input type="file" accept="image/*" class="mockup-upload" data-kind="phone" />
+          </label>
+          <div class="pin-canvas-wrap" id="pinWrap_phone" hidden>
+            <canvas id="pinCanvas_phone" width="460" height="460"></canvas>
+            <div class="pin-canvas-actions">
+              <span class="hint">Drag corners to match the screen</span>
+              <button type="button" class="link-btn reset-pin-btn" data-kind="phone">reset corners</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="field-group">
+        <h2>Watermark <span class="hint">optional</span></h2>
+        <label class="chip-toggle">
+          <input type="checkbox" id="watermarkEnabled" /> Add a watermark to protect preview images
+        </label>
+
+        <div id="watermarkOptions" hidden>
+          <label>Watermark text <span class="hint">(defaults to your shop name if left blank)</span>
+            <input type="text" id="watermarkText" placeholder="e.g. PREVIEW or Willow & Ink Co." />
+          </label>
+
+          <div class="two-col">
+            <label>Style
+              <select id="watermarkStyle">
+                <option value="tiled">Repeating diagonal</option>
+                <option value="corner">Small corner mark</option>
+              </select>
+            </label>
+            <label>Color
+              <div class="color-field">
+                <input type="color" id="watermarkColor" value="#ffffff" />
+                <input type="text" id="watermarkColorHex" class="hex-input" value="#FFFFFF" maxlength="7" spellcheck="false" />
+              </div>
+            </label>
+          </div>
+
+          <label>Opacity <span class="hint" id="watermarkOpacityLabel">18%</span>
+            <input type="range" id="watermarkOpacity" min="5" max="60" value="18" />
+          </label>
+
+          <label>Apply to <span class="hint">(images showing your actual artwork, by default)</span></label>
+          <div class="badge-options" id="watermarkTargets">
+            <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
+            <label class="chip"><input type="checkbox" value="laptop" checked> Laptop Mockup</label>
+            <label class="chip"><input type="checkbox" value="phone" checked> Phone Mockup</label>
+            <label class="chip"><input type="checkbox" value="included"> What's Included</label>
+            <label class="chip"><input type="checkbox" value="palette"> Brand Style Guide</label>
+            <label class="chip"><input type="checkbox" value="badges"> Feature Badges</label>
+          </div>
+        </div>
+      </section>
+
+      <button type="submit" class="btn btn-primary btn-generate">Generate Listing Images</button>
+    </form>
+  </aside>
+
+  <main class="gallery-wrap">
+    <div id="emptyState" class="empty-state">
+      <p>Fill in your brand and product details, then click <strong>Generate Listing Images</strong> to build your full Etsy image set.</p>
+    </div>
+
+    <div id="seoPanel" class="seo-panel" hidden>
+      <h2>SEO Title &amp; Tags <span class="hint">rule-based suggestions from your product details — review before publishing</span></h2>
+      <div class="seo-titles" id="seoTitles"></div>
+      <div class="seo-tags-block">
+        <div class="seo-tags-header">
+          <span>Tags (<span id="seoTagCount">0</span>/13)</span>
+          <button type="button" id="copyTagsBtn" class="link-btn">copy all</button>
+        </div>
+        <div class="seo-tags" id="seoTags"></div>
+      </div>
+    </div>
+
+    <div id="gallery" class="gallery"></div>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
