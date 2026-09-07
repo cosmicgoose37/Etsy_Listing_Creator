@@ -1274,7 +1274,6 @@ const TYPE_INFO = {
   template: { phrase: 'Printable Template', tags: ['printable template', 'canva template', 'digital template'] },
   mockup: { phrase: 'Digital Mockup', tags: ['digital mockup', 'phone mockup', 'laptop mockup'] },
   classroom: { phrase: 'Printable Worksheet', tags: ['printable worksheet', 'classroom resource', 'teacher resource'] },
-  graphic: { phrase: 'Digital Clipart', tags: ['digital clipart', 'clip art', 'png graphics'] },
   mixed: { phrase: 'Digital Download', tags: ['digital download', 'instant download'] },
 };
 
