@@ -72,10 +72,7 @@ const els = {
   tagline: document.getElementById('tagline'),
   bullets: document.getElementById('bullets'),
   howItWorks: document.getElementById('howItWorks'),
-  howItWorksPresetSelect: document.getElementById('howItWorksPresetSelect'),
-  newHowItWorksPresetBtn: document.getElementById('newHowItWorksPresetBtn'),
-  updateHowItWorksPresetBtn: document.getElementById('updateHowItWorksPresetBtn'),
-  deleteHowItWorksPresetBtn: document.getElementById('deleteHowItWorksPresetBtn'),
+  clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
   dropZone: document.getElementById('dropZone'),
@@ -321,8 +318,6 @@ els.textColorAuto.addEventListener('change', () => {
 function syncGradeSubjectVisibility() {
   els.gradeSubjectRow.hidden = els.productType.value !== 'classroom';
 }
-els.productType.addEventListener('change', syncGradeSubjectVisibility);
-syncGradeSubjectVisibility();
 
 // Some badges don't make sense for certain product types (e.g. a checklist
 // isn't "editable in Canva" or "no prep"). Types not listed here show every
@@ -340,80 +335,86 @@ function syncBadgeVisibility() {
     if (!show && cb.checked) cb.checked = false;
   });
 }
-els.productType.addEventListener('change', syncBadgeVisibility);
-syncBadgeVisibility();
 
 // =========================================================================
-// "How It Works" presets — reusable across listings/shops, independent of
-// brand profiles since the same steps are often reused regardless of shop.
+// Per-product-type content — Tagline, What's Included, How It Works, and
+// Badges are remembered per Product Type rather than per brand profile,
+// since the same kind of listing tends to reuse the same wording/badges
+// regardless of which shop it's for.
 // =========================================================================
-const HOWITWORKS_PRESETS_KEY = 'etsyImageMaker.howItWorksPresets.v1';
+const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
+const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', howItWorks: '', customBadge: '', badges: ['Instant Download'] };
 
-function loadHowItWorksPresets() {
+function loadTypeContent() {
   try {
-    const raw = localStorage.getItem(HOWITWORKS_PRESETS_KEY);
+    const raw = localStorage.getItem(TYPE_CONTENT_KEY);
     if (raw) return JSON.parse(raw);
   } catch (e) { /* ignore corrupt storage */ }
-  return [];
+  return {};
 }
 
-let howItWorksPresets = loadHowItWorksPresets();
+let typeContent = loadTypeContent();
+let suppressTypeContentSave = false;
 
-function saveHowItWorksPresets() {
-  localStorage.setItem(HOWITWORKS_PRESETS_KEY, JSON.stringify(howItWorksPresets));
+function saveTypeContentState() {
+  localStorage.setItem(TYPE_CONTENT_KEY, JSON.stringify(typeContent));
 }
 
-function renderHowItWorksPresetSelect(selectedId) {
-  els.howItWorksPresetSelect.innerHTML = '<option value="">Custom (no preset selected)</option>';
-  howItWorksPresets.forEach(p => {
-    const opt = document.createElement('option');
-    opt.value = p.id;
-    opt.textContent = p.name;
-    if (p.id === selectedId) opt.selected = true;
-    els.howItWorksPresetSelect.appendChild(opt);
-  });
-}
-renderHowItWorksPresetSelect();
-
-els.howItWorksPresetSelect.addEventListener('change', () => {
-  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
-  if (preset) els.howItWorks.value = preset.text;
-});
-
-els.newHowItWorksPresetBtn.addEventListener('click', () => {
-  const name = prompt('Save this "How It Works" text as a preset named:', '');
-  if (!name) return;
-  const preset = {
-    id: 'hiw_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
-    name: name.trim(),
-    text: els.howItWorks.value,
+function saveCurrentFieldsToType() {
+  if (suppressTypeContentSave) return;
+  typeContent[els.productType.value] = {
+    tagline: els.tagline.value,
+    bullets: els.bullets.value,
+    howItWorks: els.howItWorks.value,
+    customBadge: els.customBadge.value,
+    badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
   };
-  howItWorksPresets.push(preset);
-  saveHowItWorksPresets();
-  renderHowItWorksPresetSelect(preset.id);
-  setStatus(`Saved preset "${preset.name}".`);
+  saveTypeContentState();
+}
+
+function applyTypeContent(type) {
+  const saved = typeContent[type] || DEFAULT_TYPE_CONTENT;
+  suppressTypeContentSave = true;
+  els.tagline.value = saved.tagline || '';
+  els.bullets.value = saved.bullets || '';
+  els.howItWorks.value = saved.howItWorks || '';
+  els.customBadge.value = saved.customBadge || '';
+  const checkedSet = new Set(saved.badges || []);
+  els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
+    cb.checked = checkedSet.has(cb.value);
+  });
+  suppressTypeContentSave = false;
+}
+
+function handleProductTypeChange() {
+  syncGradeSubjectVisibility();
+  applyTypeContent(els.productType.value);
+  syncBadgeVisibility();
+}
+els.productType.addEventListener('change', handleProductTypeChange);
+
+[els.tagline, els.bullets, els.howItWorks, els.customBadge].forEach(el => {
+  el.addEventListener('input', saveCurrentFieldsToType);
+});
+els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
+  cb.addEventListener('change', saveCurrentFieldsToType);
 });
 
-els.updateHowItWorksPresetBtn.addEventListener('click', () => {
-  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
-  if (!preset) {
-    alert('Select a preset first, or use "+ new" to save one.');
-    return;
-  }
-  preset.text = els.howItWorks.value;
-  saveHowItWorksPresets();
-  setStatus(`Updated preset "${preset.name}".`);
+els.clearTypeContentBtn.addEventListener('click', () => {
+  const type = els.productType.value;
+  const label = els.productType.options[els.productType.selectedIndex].text;
+  if (!confirm(`Clear saved Tagline/What's Included/How It Works/Badges for "${label}"?`)) return;
+  delete typeContent[type];
+  saveTypeContentState();
+  applyTypeContent(type);
+  syncBadgeVisibility();
+  setStatus('Cleared saved content for this type.');
 });
 
-els.deleteHowItWorksPresetBtn.addEventListener('click', () => {
-  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
-  if (!preset) return;
-  if (!confirm(`Delete preset "${preset.name}"?`)) return;
-  howItWorksPresets = howItWorksPresets.filter(p => p.id !== preset.id);
-  saveHowItWorksPresets();
-  renderHowItWorksPresetSelect();
-  setStatus('Preset deleted.');
-});
+// Apply whatever's saved (or the sensible defaults) for the initially-selected type.
+syncGradeSubjectVisibility();
+applyTypeContent(els.productType.value);
+syncBadgeVisibility();
 
 // ---- hex <-> color-picker sync ----
 function isValidHex(v) {
