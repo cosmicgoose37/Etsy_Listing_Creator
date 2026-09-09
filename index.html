@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1788920824" />
+<link rel="stylesheet" href="style.css?v=1788921387" />
 </head>
 <body>
 <header class="topbar">
@@ -134,12 +134,19 @@ PDF + Canva Template
 Instant Digital Download"></textarea>
         </label>
 
-        <label>How It Works <span class="hint">(one step per line, optional — sensible defaults if left blank)</span>
-          <textarea id="howItWorks" rows="4" placeholder="Purchase &amp; instant download
+        <label>How It Works <span class="hint">(one step per line, optional — sensible defaults if left blank)</span></label>
+        <div class="profile-row">
+          <select id="howItWorksPresetSelect" autocomplete="off">
+            <option value="">Custom (no preset selected)</option>
+          </select>
+          <button type="button" id="newHowItWorksPresetBtn" class="link-btn">+ new</button>
+          <button type="button" id="updateHowItWorksPresetBtn" class="link-btn">update</button>
+          <button type="button" id="deleteHowItWorksPresetBtn" class="link-btn">delete</button>
+        </div>
+        <textarea id="howItWorks" rows="4" placeholder="Purchase &amp; instant download
 Open your files
 Edit or print
 Enjoy!"></textarea>
-        </label>
 
         <label>Badges <span class="hint">(select what applies)</span></label>
         <div id="badgeOptions" class="badge-options">
@@ -282,6 +289,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1788920824"></script>
+<script src="app.js?v=1788921387"></script>
 </body>
 </html>

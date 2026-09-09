@@ -72,6 +72,10 @@ const els = {
   tagline: document.getElementById('tagline'),
   bullets: document.getElementById('bullets'),
   howItWorks: document.getElementById('howItWorks'),
+  howItWorksPresetSelect: document.getElementById('howItWorksPresetSelect'),
+  newHowItWorksPresetBtn: document.getElementById('newHowItWorksPresetBtn'),
+  updateHowItWorksPresetBtn: document.getElementById('updateHowItWorksPresetBtn'),
+  deleteHowItWorksPresetBtn: document.getElementById('deleteHowItWorksPresetBtn'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
   dropZone: document.getElementById('dropZone'),
@@ -338,6 +342,78 @@ function syncBadgeVisibility() {
 }
 els.productType.addEventListener('change', syncBadgeVisibility);
 syncBadgeVisibility();
+
+// =========================================================================
+// "How It Works" presets — reusable across listings/shops, independent of
+// brand profiles since the same steps are often reused regardless of shop.
+// =========================================================================
+const HOWITWORKS_PRESETS_KEY = 'etsyImageMaker.howItWorksPresets.v1';
+
+function loadHowItWorksPresets() {
+  try {
+    const raw = localStorage.getItem(HOWITWORKS_PRESETS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) { /* ignore corrupt storage */ }
+  return [];
+}
+
+let howItWorksPresets = loadHowItWorksPresets();
+
+function saveHowItWorksPresets() {
+  localStorage.setItem(HOWITWORKS_PRESETS_KEY, JSON.stringify(howItWorksPresets));
+}
+
+function renderHowItWorksPresetSelect(selectedId) {
+  els.howItWorksPresetSelect.innerHTML = '<option value="">Custom (no preset selected)</option>';
+  howItWorksPresets.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    if (p.id === selectedId) opt.selected = true;
+    els.howItWorksPresetSelect.appendChild(opt);
+  });
+}
+renderHowItWorksPresetSelect();
+
+els.howItWorksPresetSelect.addEventListener('change', () => {
+  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
+  if (preset) els.howItWorks.value = preset.text;
+});
+
+els.newHowItWorksPresetBtn.addEventListener('click', () => {
+  const name = prompt('Save this "How It Works" text as a preset named:', '');
+  if (!name) return;
+  const preset = {
+    id: 'hiw_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+    name: name.trim(),
+    text: els.howItWorks.value,
+  };
+  howItWorksPresets.push(preset);
+  saveHowItWorksPresets();
+  renderHowItWorksPresetSelect(preset.id);
+  setStatus(`Saved preset "${preset.name}".`);
+});
+
+els.updateHowItWorksPresetBtn.addEventListener('click', () => {
+  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
+  if (!preset) {
+    alert('Select a preset first, or use "+ new" to save one.');
+    return;
+  }
+  preset.text = els.howItWorks.value;
+  saveHowItWorksPresets();
+  setStatus(`Updated preset "${preset.name}".`);
+});
+
+els.deleteHowItWorksPresetBtn.addEventListener('click', () => {
+  const preset = howItWorksPresets.find(p => p.id === els.howItWorksPresetSelect.value);
+  if (!preset) return;
+  if (!confirm(`Delete preset "${preset.name}"?`)) return;
+  howItWorksPresets = howItWorksPresets.filter(p => p.id !== preset.id);
+  saveHowItWorksPresets();
+  renderHowItWorksPresetSelect();
+  setStatus('Preset deleted.');
+});
 
 // ---- hex <-> color-picker sync ----
 function isValidHex(v) {
