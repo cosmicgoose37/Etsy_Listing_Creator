@@ -1271,9 +1271,9 @@ const BADGE_TAG_MAP = {
 };
 
 const TYPE_INFO = {
-  template: { phrase: 'Printable Template', tags: ['printable template', 'canva template', 'digital template'] },
-  mockup: { phrase: 'Digital Mockup', tags: ['digital mockup', 'phone mockup', 'laptop mockup'] },
   classroom: { phrase: 'Printable Worksheet', tags: ['printable worksheet', 'classroom resource', 'teacher resource'] },
+  background: { phrase: 'Digital Wallpaper', tags: ['digital wallpaper', 'phone wallpaper', 'background design'] },
+  checklist: { phrase: 'Printable Checklist', tags: ['printable checklist', 'checklist template', 'planner placeholder'] },
   mixed: { phrase: 'Digital Download', tags: ['digital download', 'instant download'] },
 };
 
