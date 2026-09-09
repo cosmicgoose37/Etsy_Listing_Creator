@@ -320,6 +320,25 @@ function syncGradeSubjectVisibility() {
 els.productType.addEventListener('change', syncGradeSubjectVisibility);
 syncGradeSubjectVisibility();
 
+// Some badges don't make sense for certain product types (e.g. a checklist
+// isn't "editable in Canva" or "no prep"). Types not listed here show every
+// badge — this is an allowlist only for types that need it trimmed down.
+const BADGE_ALLOWLIST_BY_TYPE = {
+  checklist: ['Instant Download', 'Printable', 'Black & White + Color'],
+};
+
+function syncBadgeVisibility() {
+  const allowed = BADGE_ALLOWLIST_BY_TYPE[els.productType.value];
+  els.badgeOptions.querySelectorAll('.chip').forEach(chip => {
+    const cb = chip.querySelector('input[type=checkbox]');
+    const show = !allowed || allowed.includes(cb.value);
+    chip.hidden = !show;
+    if (!show && cb.checked) cb.checked = false;
+  });
+}
+els.productType.addEventListener('change', syncBadgeVisibility);
+syncBadgeVisibility();
+
 // ---- hex <-> color-picker sync ----
 function isValidHex(v) {
   return /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v);
