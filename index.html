@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1788923000" />
+<link rel="stylesheet" href="style.css?v=1789004969" />
 </head>
 <body>
 <header class="topbar">
@@ -109,7 +109,10 @@
             <option value="mixed" selected>Mix / not sure</option>
           </select>
         </label>
-        <button type="button" id="clearTypeContentBtn" class="link-btn" style="margin: -8px 0 14px;">clear saved content for this type</button>
+        <div class="type-status-row">
+          <span class="hint" id="typeContentStatus"></span>
+          <button type="button" id="clearTypeContentBtn" class="link-btn">clear saved content for this type</button>
+        </div>
 
         <label>Product Name
           <input type="text" id="productName" placeholder="e.g. Minimalist Budget Planner" required />
@@ -283,6 +286,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1788923000"></script>
+<script src="app.js?v=1789004969"></script>
 </body>
 </html>

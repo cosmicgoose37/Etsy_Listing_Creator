@@ -73,6 +73,7 @@ const els = {
   bullets: document.getElementById('bullets'),
   howItWorks: document.getElementById('howItWorks'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
+  typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
   dropZone: document.getElementById('dropZone'),
@@ -360,6 +361,13 @@ function saveTypeContentState() {
   localStorage.setItem(TYPE_CONTENT_KEY, JSON.stringify(typeContent));
 }
 
+function updateTypeContentStatus() {
+  const hasSaved = !!typeContent[els.productType.value];
+  els.typeContentStatus.textContent = hasSaved
+    ? 'Showing saved content for this type.'
+    : 'No saved content yet for this type — saves automatically as you type.';
+}
+
 function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
   typeContent[els.productType.value] = {
@@ -370,6 +378,7 @@ function saveCurrentFieldsToType() {
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
   };
   saveTypeContentState();
+  updateTypeContentStatus();
 }
 
 function applyTypeContent(type) {
@@ -390,6 +399,7 @@ function handleProductTypeChange() {
   syncGradeSubjectVisibility();
   applyTypeContent(els.productType.value);
   syncBadgeVisibility();
+  updateTypeContentStatus();
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
@@ -408,6 +418,7 @@ els.clearTypeContentBtn.addEventListener('click', () => {
   saveTypeContentState();
   applyTypeContent(type);
   syncBadgeVisibility();
+  updateTypeContentStatus();
   setStatus('Cleared saved content for this type.');
 });
 
@@ -415,6 +426,7 @@ els.clearTypeContentBtn.addEventListener('click', () => {
 syncGradeSubjectVisibility();
 applyTypeContent(els.productType.value);
 syncBadgeVisibility();
+updateTypeContentStatus();
 
 // ---- hex <-> color-picker sync ----
 function isValidHex(v) {
