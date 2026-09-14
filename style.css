@@ -336,25 +336,6 @@ input[type="range"] {
   background: var(--input-bg);
 }
 
-.logo-palette-section { margin: -6px 0 16px; }
-.logo-palette-row {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-.logo-palette-option {
-  width: 44px;
-  height: 44px;
-  padding: 0;
-  border: 2px solid var(--line);
-  border-radius: 8px;
-  overflow: hidden;
-  display: flex;
-  cursor: pointer;
-}
-.logo-palette-option span { flex: 1; display: block; }
-.logo-palette-option:hover { border-color: var(--muted); }
-.logo-palette-option.selected { border-color: var(--accent-warm); }
 
 .drop-zone {
   border: 2px dashed var(--line);

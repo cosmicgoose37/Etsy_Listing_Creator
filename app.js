@@ -53,14 +53,6 @@ const els = {
   renameProfileBtn: document.getElementById('renameProfileBtn'),
   deleteProfileBtn: document.getElementById('deleteProfileBtn'),
   companyName: document.getElementById('companyName'),
-  logoUpload: document.getElementById('logoUpload'),
-  logoPreview: document.getElementById('logoPreview'),
-  logoPaletteSection: document.getElementById('logoPaletteSection'),
-  logoPaletteRow: document.getElementById('logoPaletteRow'),
-  primaryColor: document.getElementById('primaryColor'),
-  primaryColorHex: document.getElementById('primaryColorHex'),
-  accentColor: document.getElementById('accentColor'),
-  accentColorHex: document.getElementById('accentColorHex'),
   textColorAuto: document.getElementById('textColorAuto'),
   textColorField: document.getElementById('textColorField'),
   textColor: document.getElementById('textColor'),
@@ -124,9 +116,6 @@ function defaultProfile(name) {
     id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
     name: name || 'My Shop',
     companyName: '',
-    logoDataUrl: '',
-    primaryColor: '#c96b4f',
-    accentColor: '#f4e9dd',
     textColorAuto: true,
     textColor: '#2b2320',
     font: 'Poppins',
@@ -152,9 +141,6 @@ function loadProfilesState() {
       const old = JSON.parse(oldRaw);
       const p = defaultProfile(old.companyName || 'My Shop');
       p.companyName = old.companyName || '';
-      p.logoDataUrl = old.logoDataUrl || '';
-      p.primaryColor = old.primaryColor || p.primaryColor;
-      p.accentColor = old.accentColor || p.accentColor;
       p.font = old.font || p.font;
       return { profiles: [p], activeId: p.id };
     }
@@ -206,26 +192,11 @@ window.addEventListener('pageshow', () => resyncProfileUI());
 
 function applyProfileToForm(p) {
   els.companyName.value = p.companyName || '';
-  els.primaryColor.value = p.primaryColor || '#c96b4f';
-  els.primaryColorHex.value = els.primaryColor.value.toUpperCase();
-  els.accentColor.value = p.accentColor || '#f4e9dd';
-  els.accentColorHex.value = els.accentColor.value.toUpperCase();
   els.textColorAuto.checked = p.textColorAuto !== false;
   els.textColorField.hidden = els.textColorAuto.checked;
   els.textColor.value = p.textColor || '#2b2320';
   els.textColorHex.value = els.textColor.value.toUpperCase();
   els.fontChoice.value = p.font || 'Poppins';
-  if (p.logoDataUrl) {
-    els.logoPreview.dataset.logo = p.logoDataUrl;
-    renderLogoPreview(p.logoDataUrl);
-  } else {
-    delete els.logoPreview.dataset.logo;
-    els.logoPreview.innerHTML = '';
-  }
-  // The palette picker only applies to the upload that produced it — hide it
-  // on profile switch rather than show stale options for a different logo.
-  els.logoPaletteSection.hidden = true;
-  els.logoPaletteRow.innerHTML = '';
 
   els.watermarkEnabled.checked = !!p.watermarkEnabled;
   els.watermarkOptions.hidden = !p.watermarkEnabled;
@@ -245,9 +216,6 @@ function persistFormToActiveProfile() {
   const p = getActiveProfile();
   if (!p) return;
   p.companyName = els.companyName.value;
-  p.logoDataUrl = els.logoPreview.dataset.logo || '';
-  p.primaryColor = els.primaryColor.value;
-  p.accentColor = els.accentColor.value;
   p.textColorAuto = els.textColorAuto.checked;
   p.textColor = els.textColor.value;
   p.font = els.fontChoice.value;
@@ -307,7 +275,7 @@ els.deleteProfileBtn.addEventListener('click', () => {
   setStatus('Profile deleted.');
 });
 
-[els.companyName, els.primaryColor, els.accentColor, els.textColor, els.fontChoice,
+[els.companyName, els.textColor, els.fontChoice,
   els.watermarkText, els.watermarkStyle, els.watermarkColor].forEach(el => {
   el.addEventListener('input', persistFormToActiveProfile);
   el.addEventListener('change', persistFormToActiveProfile);
@@ -515,60 +483,8 @@ function bindColorHex(colorEl, hexEl) {
   });
 }
 
-bindColorHex(els.primaryColor, els.primaryColorHex);
-bindColorHex(els.accentColor, els.accentColorHex);
 bindColorHex(els.textColor, els.textColorHex);
 bindColorHex(els.watermarkColor, els.watermarkColorHex);
-
-function renderLogoPreview(dataUrl) {
-  els.logoPreview.innerHTML = `<img src="${dataUrl}" alt="logo preview" />`;
-}
-
-function renderLogoPaletteOptions(options) {
-  els.logoPaletteRow.innerHTML = '';
-  if (!options.length) {
-    els.logoPaletteSection.hidden = true;
-    return;
-  }
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'logo-palette-option';
-    btn.title = `Primary ${opt.primary.toUpperCase()} / Accent ${opt.accent.toUpperCase()}`;
-    btn.innerHTML = `<span style="background:${opt.primary}"></span><span style="background:${opt.accent}"></span>`;
-    btn.addEventListener('click', () => {
-      els.logoPaletteRow.querySelectorAll('.logo-palette-option').forEach(b => b.classList.remove('selected'));
-      btn.classList.add('selected');
-      els.primaryColor.value = opt.primary;
-      els.primaryColorHex.value = opt.primary.toUpperCase();
-      els.accentColor.value = opt.accent;
-      els.accentColorHex.value = opt.accent.toUpperCase();
-      persistFormToActiveProfile();
-      setStatus('Colors updated from logo palette.');
-    });
-    els.logoPaletteRow.appendChild(btn);
-  });
-  els.logoPaletteSection.hidden = false;
-}
-
-els.logoUpload.addEventListener('change', () => {
-  const file = els.logoUpload.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    els.logoPreview.dataset.logo = reader.result;
-    renderLogoPreview(reader.result);
-    persistFormToActiveProfile();
-
-    const img = new Image();
-    img.onload = () => {
-      renderLogoPaletteOptions(extractPaletteOptionsFromImage(img, 5));
-    };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-  els.logoUpload.value = ''; // allow re-selecting the same file to re-extract later
-});
 
 // =========================================================================
 // Product image uploads
@@ -713,95 +629,6 @@ function luminance(hex) {
 
 function contrastText(hex) {
   return luminance(hex) > 0.6 ? '#2b2320' : '#ffffff';
-}
-
-function rgbToHex(r, g, b) {
-  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
-  return '#' + [r, g, b].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
-}
-
-function colorSaturation(r, g, b) {
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  return max === 0 ? 0 : (max - min) / max;
-}
-
-function colorDistance(a, b) {
-  return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
-}
-
-function lightenColor(c, amount) {
-  return { r: c.r + (255 - c.r) * amount, g: c.g + (255 - c.g) * amount, b: c.b + (255 - c.b) * amount };
-}
-
-// Builds a histogram of an uploaded logo's pixels, skipping transparent,
-// near-white, and near-black ones, sorted with the most common + saturated
-// ("brand-colored") pixels first.
-function buildColorHistogram(img) {
-  const size = 120;
-  const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight, 1);
-  const w = Math.max(1, Math.round(img.naturalWidth * scale));
-  const h = Math.max(1, Math.round(img.naturalHeight * scale));
-  const canvas = document.createElement('canvas');
-  canvas.width = w;
-  canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(img, 0, 0, w, h);
-
-  let data;
-  try {
-    data = ctx.getImageData(0, 0, w, h).data;
-  } catch (e) {
-    return []; // tainted canvas or unreadable image — skip extraction
-  }
-
-  const buckets = new Map();
-  for (let i = 0; i < data.length; i += 4) {
-    if (data[i + 3] < 128) continue; // skip transparent
-    const r = data[i], g = data[i + 1], b = data[i + 2];
-    const light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
-    if (light > 0.97 || light < 0.05) continue; // skip near-white/near-black
-    const qr = Math.round(r / 16) * 16, qg = Math.round(g / 16) * 16, qb = Math.round(b / 16) * 16;
-    const key = `${qr},${qg},${qb}`;
-    const bucket = buckets.get(key);
-    if (bucket) bucket.count++;
-    else buckets.set(key, { r: qr, g: qg, b: qb, count: 1 });
-  }
-
-  const candidates = [...buckets.values()];
-  candidates.forEach(c => { c.sat = colorSaturation(c.r, c.g, c.b); });
-  candidates.sort((a, b) => (b.count * (0.4 + b.sat)) - (a.count * (0.4 + a.sat)));
-  return candidates;
-}
-
-// Returns up to `count` distinct (primary, accent) color-pair options
-// extracted from a logo, for the user to choose between. Accent is always a
-// pale tint of that option's own primary, so every option is guaranteed to
-// be usable as a background regardless of what's actually in the logo. If
-// the logo doesn't have `count` sufficiently distinct colors, the list is
-// padded with progressively lighter variants of the top color.
-function extractPaletteOptionsFromImage(img, count) {
-  count = count || 5;
-  const candidates = buildColorHistogram(img);
-  if (!candidates.length) return [];
-
-  const picked = [];
-  for (const c of candidates) {
-    if (picked.every(p => colorDistance(p, c) > 40)) picked.push(c);
-    if (picked.length >= count) break;
-  }
-  let pad = 1;
-  while (picked.length < count && picked.length > 0) {
-    picked.push(lightenColor(picked[0], Math.min(0.18 * pad, 0.85)));
-    pad++;
-  }
-
-  return picked.slice(0, count).map(c => {
-    const accent = lightenColor(c, 0.88);
-    return {
-      primary: rgbToHex(c.r, c.g, c.b),
-      accent: rgbToHex(accent.r, accent.g, accent.b),
-    };
-  });
 }
 
 async function ensureFont(family) {
@@ -1090,12 +917,18 @@ setupMockupSlot('custom');
 // =========================================================================
 // Template generators
 // =========================================================================
+// Fixed for now — Checklist + Placeholders is the only product type in
+// scope, and the brand wants a consistent look across every listing rather
+// than a per-listing/per-logo color picker.
+const FIXED_PRIMARY_COLOR = '#c96b4f';
+const FIXED_ACCENT_COLOR = '#f4e9dd';
+
 function getBrand() {
   return {
     companyName: els.companyName.value.trim() || 'Your Shop',
-    logoImgSrc: els.logoPreview.dataset.logo || null,
-    primaryColor: els.primaryColor.value,
-    accentColor: els.accentColor.value,
+    logoImgSrc: null,
+    primaryColor: FIXED_PRIMARY_COLOR,
+    accentColor: FIXED_ACCENT_COLOR,
     textColorOverride: els.textColorAuto.checked ? null : els.textColor.value,
     font: els.fontChoice.value,
   };
@@ -1790,15 +1623,6 @@ els.copyTagsBtn.addEventListener('click', () => {
 // =========================================================================
 // Generation pipeline
 // =========================================================================
-function loadImageFromSrc(src) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
-  });
-}
-
 function setStatus(msg) {
   els.statusMsg.textContent = msg;
   if (msg) setTimeout(() => { if (els.statusMsg.textContent === msg) els.statusMsg.textContent = ''; }, 4000);
@@ -1855,10 +1679,7 @@ els.form.addEventListener('submit', async e => {
   const product = getProduct();
   await ensureFont(brand.font);
 
-  let logoImg = null;
-  if (brand.logoImgSrc) {
-    try { logoImg = await loadImageFromSrc(brand.logoImgSrc); } catch (e) { /* ignore */ }
-  }
+  const logoImg = null; // no logo upload for now — see FIXED_PRIMARY_COLOR/FIXED_ACCENT_COLOR above
 
   const designImg = getDesignImage();
 

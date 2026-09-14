@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789422504" />
+<link rel="stylesheet" href="style.css?v=1789423028" />
 </head>
 <body>
 <header class="topbar">
@@ -56,31 +56,6 @@
           <input type="text" id="companyName" placeholder="e.g. Willow & Ink Co." required />
         </label>
 
-        <label>Logo <span class="hint">(optional, transparent PNG works best)</span>
-          <input type="file" id="logoUpload" accept="image/*" />
-        </label>
-        <div id="logoPreview" class="logo-preview"></div>
-
-        <div id="logoPaletteSection" class="logo-palette-section" hidden>
-          <span class="hint">Pick a color pair from your logo:</span>
-          <div class="logo-palette-row" id="logoPaletteRow"></div>
-        </div>
-
-        <div class="two-col">
-          <label>Primary color
-            <div class="color-field">
-              <input type="color" id="primaryColor" value="#c96b4f" />
-              <input type="text" id="primaryColorHex" class="hex-input" value="#C96B4F" maxlength="7" spellcheck="false" />
-            </div>
-          </label>
-          <label>Accent color
-            <div class="color-field">
-              <input type="color" id="accentColor" value="#f4e9dd" />
-              <input type="text" id="accentColorHex" class="hex-input" value="#F4E9DD" maxlength="7" spellcheck="false" />
-            </div>
-          </label>
-        </div>
-
         <label>Text Color</label>
         <label class="chip-toggle" style="margin-bottom: 10px;">
           <input type="checkbox" id="textColorAuto" checked /> Auto (best contrast per image)
@@ -106,12 +81,9 @@
       <section class="field-group">
         <h2>Product</h2>
 
-        <label>Product Type <span class="hint">(Tagline, What's Included, How It Works, and Badges are remembered per type, regardless of brand profile)</span>
+        <label>Product Type
           <select id="productType">
-            <option value="classroom">Classroom resource / worksheet</option>
-            <option value="background">Background / Wallpapers</option>
-            <option value="checklist">Checklist + Placeholders</option>
-            <option value="mixed" selected>Mix / not sure</option>
+            <option value="checklist" selected>Checklist + Placeholders</option>
           </select>
         </label>
         <div class="type-status-row">
@@ -311,6 +283,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789422504"></script>
+<script src="app.js?v=1789423028"></script>
 </body>
 </html>
