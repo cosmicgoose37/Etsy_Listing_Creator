@@ -171,7 +171,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
-    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'laptop', 'phone', 'custom', 'pages'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
 
@@ -1866,6 +1866,185 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
+// "Track Your Collection Your Way" guide — layout, columns, and bullets are
+// fixed on purpose; only the checklist screenshot itself differs.
+const CHECKLIST_GUIDE_COLUMNS = [
+  {
+    heading: 'DIGITAL',
+    bullets: ['Open the fillable PDF', 'Click checkboxes as you collect cards', 'Save your progress', 'Reopen and keep updating anytime'],
+  },
+  {
+    heading: 'PRINTED',
+    bullets: ['Print the checklist', 'Check cards off by hand', 'Keep it with your binder', 'Use it as a quick collection reference'],
+  },
+];
+
+function drawChecklistGuide(ctx, brand, product, images, watermark) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed, two lines) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Track Your Collection', margin, 250);
+  ctx.fillText('Your Way', margin, 340);
+
+  // ---- Subtitle (fixed) ----
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'Use the included checklist digitally or print it and track by hand.', margin, 416, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Large checklist preview image ----
+  const imgTop = 560, imgH = 560;
+  ctx.save();
+  roundRect(ctx, margin, imgTop, contentW, imgH, 18);
+  ctx.clip();
+  const img = images.checklist;
+  if (img) {
+    drawCover(ctx, margin, imgTop, contentW, imgH, img);
+  } else {
+    ctx.fillStyle = '#f1ece4';
+    ctx.fillRect(margin, imgTop, contentW, imgH);
+  }
+  if (watermark) {
+    drawWatermark(ctx, watermark.text, watermark, { x: margin, y: imgTop, w: contentW, h: imgH });
+  }
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, margin, imgTop, contentW, imgH, 18);
+  ctx.stroke();
+
+  // ---- "Actual Checklist Preview" badge, overlaid top-left on the image ----
+  ctx.font = `700 24px "${brand.font}"`;
+  const badgeLabel = 'ACTUAL CHECKLIST PREVIEW';
+  const badgePadX = 20, badgeH = 46;
+  const badgeW = ctx.measureText(badgeLabel).width + badgePadX * 2;
+  const badgeX = margin + 24, badgeY = imgTop + 24;
+  ctx.fillStyle = '#faf6ef';
+  ctx.globalAlpha = 0.92;
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#1f1b17';
+  ctx.textAlign = 'left';
+  ctx.fillText(badgeLabel, badgeX + badgePadX, badgeY + badgeH / 2 + 8);
+
+  // ---- Two columns: Digital / Printed ----
+  const colsTop = imgTop + imgH + 50;
+  const colGap = 40;
+  const colW = (contentW - colGap) / 2;
+  const colH = 460;
+  const bulletSlotH = 72;
+
+  CHECKLIST_GUIDE_COLUMNS.forEach((col, i) => {
+    const colX = margin + i * (colW + colGap);
+    const cx = colX + colW / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, colX, colsTop, colW, colH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, colX, colsTop, colW, colH, 20);
+    ctx.stroke();
+
+    const headingY = colsTop + 64;
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 32px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(col.heading, cx, headingY);
+
+    const ruleY = headingY + 24;
+    ctx.strokeStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.2;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(colX + 40, ruleY);
+    ctx.lineTo(colX + colW - 40, ruleY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const bulletsTop = ruleY + 46;
+    const textX = colX + 66;
+    const textMaxW = colW - 106;
+    col.bullets.forEach((bullet, bi) => {
+      const by = bulletsTop + bi * bulletSlotH;
+      ctx.fillStyle = brand.primaryColor;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(colX + 40, by - 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = textColor;
+      ctx.font = `500 26px "${brand.font}"`;
+      ctx.textAlign = 'left';
+      wrapText(ctx, bullet, textX, by, textMaxW, 34, 'left');
+    });
+  });
+
+  // ---- Highlighted note box ----
+  const boxTop = colsTop + colH + 50;
+  const boxH = 140;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 38px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('USE IT DIGITALLY OR PRINT IT — BOTH OPTIONS ARE INCLUDED', SIZE / 2, boxTop + 58);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.6;
+  ctx.font = `500 26px "${brand.font}"`;
+  ctx.fillText('Standard + Reverse Holo variants are tracked separately', SIZE / 2, boxTop + 102);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
+}
+
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -2467,6 +2646,12 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawEasySteps(ctx, brand, product),
     },
     {
+      label: 'Track Your Collection',
+      key: 'checklistguide',
+      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      fn: (ctx) => drawChecklistGuide(ctx, brand, product, checklistImages, watermarkFor('checklistguide')),
+    },
+    {
       label: 'Laptop Mockup',
       key: 'laptop',
       include: true,
@@ -2505,12 +2690,12 @@ els.form.addEventListener('submit', async e => {
   }));
 
   // Laptop/phone/custom mockups, the Hero Cover, the Everything Included
-  // showcase, the Choose Your Size guide, and the Print Style guide all draw
-  // their own watermark internally, clipped to their screen/display/image
-  // areas — applying it again here would double it up across the whole
-  // canvas. The multi-page grid and the text-only guides (What's Included,
-  // How It Works, 3 Easy Steps, Feature Badges) have no such area, so they
-  // get the full-canvas treatment.
+  // showcase, the Choose Your Size guide, the Print Style guide, and the
+  // Track Your Collection guide all draw their own watermark internally,
+  // clipped to their screen/display/image areas — applying it again here
+  // would double it up across the whole canvas. The multi-page grid and the
+  // text-only guides (What's Included, How It Works, 3 Easy Steps, Feature
+  // Badges) have no such area, so they get the full-canvas treatment.
   const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'easysteps', 'badges', 'pages']);
 
   templates.forEach(t => {
