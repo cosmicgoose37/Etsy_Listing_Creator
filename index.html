@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789423521" />
+<link rel="stylesheet" href="style.css?v=1789423960" />
 </head>
 <body>
 <header class="topbar">
@@ -55,6 +55,18 @@
         <label>Shop / Company Name
           <input type="text" id="companyName" placeholder="e.g. Willow & Ink Co." required />
         </label>
+
+        <label>Color Scheme</label>
+        <div class="color-scheme-row" id="colorSchemeRow">
+          <button type="button" class="color-scheme-option selected" data-scheme="orange">
+            <span class="color-scheme-swatch"><span style="background:#c96b4f"></span><span style="background:#f4e9dd"></span></span>
+            <span class="color-scheme-label">Orange</span>
+          </button>
+          <button type="button" class="color-scheme-option" data-scheme="teal">
+            <span class="color-scheme-swatch"><span style="background:#1f5f58"></span><span style="background:#e7f2f0"></span></span>
+            <span class="color-scheme-label">Dark Teal</span>
+          </button>
+        </div>
 
         <label>Text Color</label>
         <label class="chip-toggle" style="margin-bottom: 10px;">
@@ -273,6 +285,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789423521"></script>
+<script src="app.js?v=1789423960"></script>
 </body>
 </html>

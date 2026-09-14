@@ -3,6 +3,13 @@ const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
 const THEME_KEY = 'etsyImageMaker.theme';
 
+// Two fixed color schemes for now, in place of a full custom color picker.
+const COLOR_SCHEME_KEY = 'etsyImageMaker.colorScheme';
+const COLOR_SCHEMES = [
+  { id: 'orange', name: 'Orange', primary: '#c96b4f', accent: '#f4e9dd' },
+  { id: 'teal', name: 'Dark Teal', primary: '#1f5f58', accent: '#e7f2f0' },
+];
+
 // =========================================================================
 // Theme (dark mode)
 // =========================================================================
@@ -53,6 +60,7 @@ const els = {
   renameProfileBtn: document.getElementById('renameProfileBtn'),
   deleteProfileBtn: document.getElementById('deleteProfileBtn'),
   companyName: document.getElementById('companyName'),
+  colorSchemeRow: document.getElementById('colorSchemeRow'),
   textColorAuto: document.getElementById('textColorAuto'),
   textColorField: document.getElementById('textColorField'),
   textColor: document.getElementById('textColor'),
@@ -101,6 +109,34 @@ let uploadedImages = []; // { dataUrl, img }
 let generatedCanvases = []; // { name, canvas }
 let dragSrcIndex = null;
 let lastTags = [];
+
+// =========================================================================
+// Color scheme (2 fixed options, saved locally)
+// =========================================================================
+function loadColorSchemeId() {
+  try {
+    const saved = localStorage.getItem(COLOR_SCHEME_KEY);
+    if (COLOR_SCHEMES.some(s => s.id === saved)) return saved;
+  } catch (e) { /* ignore */ }
+  return COLOR_SCHEMES[0].id;
+}
+
+let selectedColorSchemeId = loadColorSchemeId();
+
+function renderColorSchemeOptions() {
+  els.colorSchemeRow.querySelectorAll('.color-scheme-option').forEach(btn => {
+    btn.classList.toggle('selected', btn.dataset.scheme === selectedColorSchemeId);
+  });
+}
+
+els.colorSchemeRow.querySelectorAll('.color-scheme-option').forEach(btn => {
+  btn.addEventListener('click', () => {
+    selectedColorSchemeId = btn.dataset.scheme;
+    try { localStorage.setItem(COLOR_SCHEME_KEY, selectedColorSchemeId); } catch (e) { /* ignore */ }
+    renderColorSchemeOptions();
+  });
+});
+renderColorSchemeOptions();
 
 // =========================================================================
 // Brand profiles
@@ -902,18 +938,13 @@ setupMockupSlot('custom');
 // =========================================================================
 // Template generators
 // =========================================================================
-// Fixed for now — Checklist + Placeholders is the only product type in
-// scope, and the brand wants a consistent look across every listing rather
-// than a per-listing/per-logo color picker.
-const FIXED_PRIMARY_COLOR = '#c96b4f';
-const FIXED_ACCENT_COLOR = '#f4e9dd';
-
 function getBrand() {
+  const scheme = COLOR_SCHEMES.find(s => s.id === selectedColorSchemeId) || COLOR_SCHEMES[0];
   return {
     companyName: els.companyName.value.trim() || 'Your Shop',
     logoImgSrc: null,
-    primaryColor: FIXED_PRIMARY_COLOR,
-    accentColor: FIXED_ACCENT_COLOR,
+    primaryColor: scheme.primary,
+    accentColor: scheme.accent,
     textColorOverride: els.textColorAuto.checked ? null : els.textColor.value,
     font: els.fontChoice.value,
   };
@@ -1645,7 +1676,7 @@ els.form.addEventListener('submit', async e => {
   const product = getProduct();
   await ensureFont(brand.font);
 
-  const logoImg = null; // no logo upload for now — see FIXED_PRIMARY_COLOR/FIXED_ACCENT_COLOR above
+  const logoImg = null; // no logo upload for now — see COLOR_SCHEMES above
 
   const designImg = getDesignImage();
 
