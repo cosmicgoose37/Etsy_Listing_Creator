@@ -1107,9 +1107,9 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
 
   // ---- Headline ----
   ctx.fillStyle = textColor;
-  ctx.font = `700 92px "${brand.font}"`;
+  ctx.font = `700 104px "${brand.font}"`;
   ctx.textAlign = 'left';
-  let y = wrapText(ctx, product.name, margin, 232, contentW, 96, 'left');
+  let y = wrapText(ctx, product.name, margin, 232, contentW, 110, 'left');
 
   if (product.tagline) {
     ctx.font = `500 38px "${brand.font}"`;
@@ -1130,7 +1130,7 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
 
   // ---- One large showcase image — the Color Placeholders preview ----
   const imgTop = featureBottom + 40;
-  const imgBottom = SIZE - 100;
+  const imgBottom = SIZE - 170;
   const imgH = imgBottom - imgTop;
 
   ctx.save();
@@ -1655,6 +1655,197 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
+}
+
+// "3 Easy Steps" guide — entirely fixed (no images, no product-specific
+// text) since it always describes the same Checklist + Placeholders
+// workflow regardless of which product this happens to be.
+const EASY_STEPS_CARDS = [
+  {
+    n: '1', heading: 'CHOOSE',
+    bullets: ['Pick Color or Greyscale', 'Choose 9, 16, or 25 cards/page', 'Print only the version you want'],
+  },
+  {
+    n: '2', heading: 'PRINT + CUT',
+    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Use your preferred paper or cardstock'],
+  },
+  {
+    n: '3', heading: 'PLACE IN BINDER',
+    bullets: ['Slip placeholders into empty binder pockets', 'See exactly which cards you still need', 'Replace placeholders as you collect the real cards'],
+  },
+];
+
+function drawEasySteps(ctx, brand, product) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- "Instant Download" badge, top right ----
+  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  wrapText(ctx, 'INSTANT DOWNLOAD', badgeX + 36, badgeY + 66, badgeW - 72, 46, 'left');
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.75;
+  ctx.font = `500 28px "${brand.font}"`;
+  ctx.fillText('Unzip → choose → print', badgeX + 36, badgeY + 136);
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('From Download to Binder', margin, 250);
+  ctx.fillText('in 3 Easy Steps', margin, 340);
+
+  // ---- Subtitle (fixed) ----
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'Everything you need to start using your placeholder set right away.', margin, 416, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Three step cards ----
+  const cardsTop = 560;
+  const cardGap = 40;
+  const cardW = (contentW - cardGap * 2) / 3;
+  const cardH = 700;
+  const pad = 44;
+  const circleR = 54;
+  const bulletSlotH = 90;
+
+  EASY_STEPS_CARDS.forEach((card, i) => {
+    const cardX = margin + i * (cardW + cardGap);
+    const cx = cardX + cardW / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.stroke();
+
+    const circleCy = cardsTop + pad + circleR;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    ctx.arc(cx, circleCy, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.font = `700 44px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(card.n, cx, circleCy + 16);
+
+    const headingY = circleCy + circleR + 66;
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 32px "${brand.font}"`;
+    ctx.fillText(card.heading, cx, headingY);
+
+    const ruleY = headingY + 26;
+    ctx.strokeStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.2;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(cardX + pad, ruleY);
+    ctx.lineTo(cardX + cardW - pad, ruleY);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+
+    const bulletsTop = ruleY + 46;
+    const textX = cardX + pad + 26;
+    const textMaxW = cardW - pad * 2 - 26;
+    card.bullets.forEach((bullet, bi) => {
+      const by = bulletsTop + bi * bulletSlotH;
+      ctx.fillStyle = brand.primaryColor;
+      ctx.globalAlpha = 0.55;
+      ctx.beginPath();
+      ctx.arc(cardX + pad + 6, by - 8, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+
+      ctx.fillStyle = textColor;
+      ctx.font = `500 26px "${brand.font}"`;
+      ctx.textAlign = 'left';
+      wrapText(ctx, bullet, textX, by, textMaxW, 34, 'left');
+    });
+  });
+
+  // ---- Highlighted note box ----
+  const boxTop = cardsTop + cardH + 50;
+  const boxH = 320;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 100);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.75;
+  ctx.font = `500 30px "${brand.font}"`;
+  ctx.fillText('Replace each placeholder with the real card as your binder grows.', SIZE / 2, boxTop + 160);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.6;
+  ctx.font = `500 26px "${brand.font}"`;
+  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 220);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.55;
+  ctx.font = `500 26px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Digital product only • No physical item will be shipped', SIZE / 2, SIZE - 140);
+  ctx.globalAlpha = 1;
+
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.2;
   ctx.lineWidth = 2;
@@ -2270,6 +2461,12 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
     },
     {
+      label: '3 Easy Steps',
+      key: 'easysteps',
+      include: product.type === 'checklist',
+      fn: (ctx) => drawEasySteps(ctx, brand, product),
+    },
+    {
       label: 'Laptop Mockup',
       key: 'laptop',
       include: true,
@@ -2311,9 +2508,10 @@ els.form.addEventListener('submit', async e => {
   // showcase, the Choose Your Size guide, and the Print Style guide all draw
   // their own watermark internally, clipped to their screen/display/image
   // areas — applying it again here would double it up across the whole
-  // canvas. The multi-page grid has no such area, so it gets the
-  // full-canvas treatment like the other flat graphics.
-  const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'badges', 'pages']);
+  // canvas. The multi-page grid and the text-only guides (What's Included,
+  // How It Works, 3 Easy Steps, Feature Badges) have no such area, so they
+  // get the full-canvas treatment.
+  const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'easysteps', 'badges', 'pages']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
