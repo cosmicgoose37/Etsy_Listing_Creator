@@ -66,6 +66,16 @@ const els = {
   fontChoice: document.getElementById('fontChoice'),
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
+  checklistImagesSection: document.getElementById('checklistImagesSection'),
+  checklistImgChecklist: document.getElementById('checklistImgChecklist'),
+  checklistImgColor: document.getElementById('checklistImgColor'),
+  checklistImgGrey: document.getElementById('checklistImgGrey'),
+  checklistImgChecklistPreview: document.getElementById('checklistImgChecklistPreview'),
+  checklistImgColorPreview: document.getElementById('checklistImgColorPreview'),
+  checklistImgGreyPreview: document.getElementById('checklistImgGreyPreview'),
+  checklistImgChecklistStatus: document.getElementById('checklistImgChecklistStatus'),
+  checklistImgColorStatus: document.getElementById('checklistImgColorStatus'),
+  checklistImgGreyStatus: document.getElementById('checklistImgGreyStatus'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -320,6 +330,47 @@ function syncGradeSubjectVisibility() {
   els.gradeSubjectRow.hidden = els.productType.value !== 'classroom';
 }
 
+// =========================================================================
+// Checklist product type — 3 explicitly-labeled required images that build
+// the collage Hero Cover (see drawChecklistHero). Kept separate from the
+// generic multi-image uploader so there's no ambiguity about which photo is
+// which — order in the generic uploader was too easy to get wrong.
+// =========================================================================
+const checklistImages = { checklist: null, color: null, grey: null };
+
+function syncChecklistImagesVisibility() {
+  els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
+}
+
+function setupChecklistImageSlot(key, input, preview, status) {
+  input.addEventListener('change', () => {
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        checklistImages[key] = img;
+        preview.innerHTML = `<img src="${reader.result}" alt="" />`;
+        status.textContent = '— uploaded';
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+setupChecklistImageSlot('checklist', els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus);
+setupChecklistImageSlot('color', els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus);
+setupChecklistImageSlot('grey', els.checklistImgGrey, els.checklistImgGreyPreview, els.checklistImgGreyStatus);
+
+function missingChecklistImageLabels() {
+  const missing = [];
+  if (!checklistImages.checklist) missing.push('Checklist Preview');
+  if (!checklistImages.color) missing.push('Color Placeholders Preview');
+  if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
+  return missing;
+}
+
 // Some badges don't make sense for certain product types (e.g. a checklist
 // isn't "editable in Canva" or "no prep"). Types not listed here show every
 // badge — this is an allowlist only for types that need it trimmed down.
@@ -397,6 +448,7 @@ function applyTypeContent(type) {
 
 function handleProductTypeChange() {
   syncGradeSubjectVisibility();
+  syncChecklistImagesVisibility();
   applyTypeContent(els.productType.value);
   syncBadgeVisibility();
   updateTypeContentStatus();
@@ -424,6 +476,7 @@ els.clearTypeContentBtn.addEventListener('click', () => {
 
 // Apply whatever's saved (or the sensible defaults) for the initially-selected type.
 syncGradeSubjectVisibility();
+syncChecklistImagesVisibility();
 applyTypeContent(els.productType.value);
 syncBadgeVisibility();
 updateTypeContentStatus();
@@ -1081,7 +1134,7 @@ function drawInstructionBox(ctx, x, y, w, h, brand, product) {
   });
 }
 
-function drawChecklistHero(ctx, brand, product, images) {
+function drawChecklistHero(ctx, brand, product, checklistImg, colorImg, greyImg) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = textColorFor(brand, contrastText(brand.accentColor));
@@ -1145,18 +1198,12 @@ function drawChecklistHero(ctx, brand, product, images) {
   const gridTop = featureTop + featureH + 40;
   const row1H = 730, row2H = 380, gGap = 26;
   const colW = (contentW - gGap) / 2;
-  const captions = ['Fillable Checklist', 'Color Placeholders', 'Greyscale Placeholders'];
   const row2Y = gridTop + row1H + gGap;
 
-  drawImageCard(ctx, margin, gridTop, colW, row1H, images[0] ? images[0].img : null, captions[0], brand);
-  drawImageCard(ctx, margin + colW + gGap, gridTop, colW, row1H, images[1] ? images[1].img : null, captions[1], brand);
-
-  if (images[2]) {
-    drawImageCard(ctx, margin, row2Y, colW, row2H, images[2].img, captions[2], brand);
-    drawInstructionBox(ctx, margin + colW + gGap, row2Y, colW, row2H, brand, product);
-  } else {
-    drawInstructionBox(ctx, margin, row2Y, contentW, row2H, brand, product);
-  }
+  drawImageCard(ctx, margin, gridTop, colW, row1H, checklistImg, 'Fillable Checklist', brand);
+  drawImageCard(ctx, margin + colW + gGap, gridTop, colW, row1H, colorImg, 'Color Placeholders', brand);
+  drawImageCard(ctx, margin, row2Y, colW, row2H, greyImg, 'Greyscale Placeholders', brand);
+  drawInstructionBox(ctx, margin + colW + gGap, row2Y, colW, row2H, brand, product);
 
   // ---- Footer ----
   const footerY = SIZE - 120;
@@ -1724,6 +1771,16 @@ function downloadCanvas(canvas, name) {
 
 els.form.addEventListener('submit', async e => {
   e.preventDefault();
+
+  if (els.productType.value === 'checklist') {
+    const missing = missingChecklistImageLabels();
+    if (missing.length) {
+      alert(`Please upload the following before generating:\n\n${missing.map(m => '- ' + m).join('\n')}`);
+      els.checklistImagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      return;
+    }
+  }
+
   els.downloadAllBtn.disabled = true;
   setStatus('Generating images…');
   els.gallery.innerHTML = '';
@@ -1752,10 +1809,11 @@ els.form.addEventListener('submit', async e => {
       label: 'Hero Cover',
       key: 'hero',
       include: true,
-      // The checklist collage layout needs real preview images to fill its
-      // grid — fall back to the standard hero until at least 2 are uploaded.
-      fn: (ctx) => (product.type === 'checklist' && uploadedImages.length >= 2)
-        ? drawChecklistHero(ctx, brand, product, uploadedImages)
+      // The checklist collage layout requires all 3 dedicated preview
+      // images (enforced before we even get here — see the submit handler's
+      // validation) — falls back to the standard hero otherwise.
+      fn: (ctx) => (product.type === 'checklist' && missingChecklistImageLabels().length === 0)
+        ? drawChecklistHero(ctx, brand, product, checklistImages.checklist, checklistImages.color, checklistImages.grey)
         : drawHero(ctx, brand, product, uploadedImages, logoImg),
     },
     {

@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789419570" />
+<link rel="stylesheet" href="style.css?v=1789419933" />
 </head>
 <body>
 <header class="topbar">
@@ -161,6 +161,26 @@ Enjoy!"></textarea>
         </label>
       </section>
 
+      <section class="field-group" id="checklistImagesSection" hidden>
+        <h2>Checklist Preview Images <span class="hint">required for this product type</span></h2>
+        <p class="hint">These 3 specific images build the Hero Cover collage automatically — upload each one below.</p>
+
+        <label>Checklist Preview <span class="hint" id="checklistImgChecklistStatus">— required</span>
+          <input type="file" accept="image/*" id="checklistImgChecklist" />
+        </label>
+        <div class="logo-preview" id="checklistImgChecklistPreview"></div>
+
+        <label>Color Placeholders Preview <span class="hint" id="checklistImgColorStatus">— required</span>
+          <input type="file" accept="image/*" id="checklistImgColor" />
+        </label>
+        <div class="logo-preview" id="checklistImgColorPreview"></div>
+
+        <label>Greyscale Placeholders Preview <span class="hint" id="checklistImgGreyStatus">— required</span>
+          <input type="file" accept="image/*" id="checklistImgGrey" />
+        </label>
+        <div class="logo-preview" id="checklistImgGreyPreview"></div>
+      </section>
+
       <section class="field-group">
         <h2>Product Images</h2>
         <label>Upload photos / mockups <span class="hint">(drag multiple, or click)</span></label>
@@ -286,6 +306,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789419570"></script>
+<script src="app.js?v=1789419933"></script>
 </body>
 </html>
