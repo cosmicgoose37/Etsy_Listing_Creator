@@ -100,9 +100,6 @@ const els = {
   typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
-  dropZone: document.getElementById('dropZone'),
-  imageUpload: document.getElementById('imageUpload'),
-  imageThumbs: document.getElementById('imageThumbs'),
   gallery: document.getElementById('gallery'),
   emptyState: document.getElementById('emptyState'),
   downloadAllBtn: document.getElementById('downloadAllBtn'),
@@ -124,9 +121,7 @@ const els = {
   watermarkTargets: document.getElementById('watermarkTargets'),
 };
 
-let uploadedImages = []; // { dataUrl, img }
 let generatedCanvases = []; // { name, canvas }
-let dragSrcIndex = null;
 let lastTags = [];
 
 // =========================================================================
@@ -171,7 +166,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
-    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide', 'laptop', 'phone', 'custom', 'pages'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide'],
   };
 }
 
@@ -249,7 +244,7 @@ function applyProfileToForm(p) {
   els.watermarkColorHex.value = els.watermarkColor.value.toUpperCase();
   els.watermarkOpacity.value = p.watermarkOpacity != null ? p.watermarkOpacity : 30;
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
-  const targets = new Set(p.watermarkTargets || ['hero', 'laptop', 'phone']);
+  const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide']);
   els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = targets.has(cb.value);
   });
@@ -542,71 +537,6 @@ function bindColorHex(colorEl, hexEl) {
 bindColorHex(els.watermarkColor, els.watermarkColorHex);
 
 // =========================================================================
-// Product image uploads
-// =========================================================================
-function addFiles(fileList) {
-  [...fileList].forEach(file => {
-    if (!file.type.startsWith('image/')) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        uploadedImages.push({ dataUrl: reader.result, img });
-        renderThumbs();
-        redrawAllPinCanvases();
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-els.dropZone.addEventListener('click', () => els.imageUpload.click());
-els.imageUpload.addEventListener('change', () => addFiles(els.imageUpload.files));
-
-els.dropZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  els.dropZone.classList.add('dragover');
-});
-els.dropZone.addEventListener('dragleave', () => els.dropZone.classList.remove('dragover'));
-els.dropZone.addEventListener('drop', e => {
-  e.preventDefault();
-  els.dropZone.classList.remove('dragover');
-  addFiles(e.dataTransfer.files);
-});
-
-function renderThumbs() {
-  els.imageThumbs.innerHTML = '';
-  uploadedImages.forEach((item, i) => {
-    const div = document.createElement('div');
-    div.className = 'thumb' + (i === 0 ? ' first' : '');
-    div.draggable = true;
-    div.innerHTML = `<img src="${item.dataUrl}" /><button type="button" class="remove-btn" title="Remove">&times;</button>`;
-    div.querySelector('.remove-btn').addEventListener('click', () => {
-      uploadedImages.splice(i, 1);
-      renderThumbs();
-      redrawAllPinCanvases();
-    });
-    div.addEventListener('dragstart', () => { dragSrcIndex = i; });
-    div.addEventListener('dragover', e => e.preventDefault());
-    div.addEventListener('drop', e => {
-      e.preventDefault();
-      if (dragSrcIndex === null || dragSrcIndex === i) return;
-      const moved = uploadedImages.splice(dragSrcIndex, 1)[0];
-      uploadedImages.splice(i, 0, moved);
-      dragSrcIndex = null;
-      renderThumbs();
-      redrawAllPinCanvases();
-    });
-    els.imageThumbs.appendChild(div);
-  });
-}
-
-function getDesignImage() {
-  return uploadedImages[1] ? uploadedImages[1].img : (uploadedImages[0] ? uploadedImages[0].img : null);
-}
-
-// =========================================================================
 // Generic drawing helpers
 // =========================================================================
 function roundRect(ctx, x, y, w, h, r) {
@@ -640,12 +570,6 @@ function drawCover(ctx, x, y, w, h, img) {
     sy = (img.height - sh) / 2;
   }
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-}
-
-function containRect(canvasW, canvasH, imgW, imgH) {
-  const scale = Math.min(canvasW / imgW, canvasH / imgH);
-  const w = imgW * scale, h = imgH * scale;
-  return { x: (canvasW - w) / 2, y: (canvasH - h) / 2, w, h };
 }
 
 function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
@@ -693,71 +617,6 @@ async function ensureFont(family) {
       document.fonts.load(`700 60px "${family}"`),
     ]);
   } catch (e) { /* fall back silently */ }
-}
-
-// =========================================================================
-// Perspective warp (unit-square -> quadrilateral projective mapping)
-// =========================================================================
-function computeQuadCoeffs(dst) {
-  const x0 = dst.tl.x, y0 = dst.tl.y, x1 = dst.tr.x, y1 = dst.tr.y,
-        x2 = dst.br.x, y2 = dst.br.y, x3 = dst.bl.x, y3 = dst.bl.y;
-  const dx1 = x1 - x2, dx2 = x3 - x2, dx3 = x0 - x1 + x2 - x3;
-  const dy1 = y1 - y2, dy2 = y3 - y2, dy3 = y0 - y1 + y2 - y3;
-  let a13 = 0, a23 = 0;
-  const den = dx1 * dy2 - dx2 * dy1;
-  if (Math.abs(dx3) > 1e-9 || Math.abs(dy3) > 1e-9) {
-    a13 = (dx3 * dy2 - dx2 * dy3) / den;
-    a23 = (dx1 * dy3 - dx3 * dy1) / den;
-  }
-  return {
-    a11: x1 - x0 + a13 * x1,
-    a21: x3 - x0 + a23 * x3,
-    a31: x0,
-    a12: y1 - y0 + a13 * y1,
-    a22: y3 - y0 + a23 * y3,
-    a32: y0,
-    a13, a23,
-  };
-}
-
-function mapUnitToQuad(c, u, v) {
-  const denom = c.a13 * u + c.a23 * v + 1;
-  return {
-    x: (c.a11 * u + c.a21 * v + c.a31) / denom,
-    y: (c.a12 * u + c.a22 * v + c.a32) / denom,
-  };
-}
-
-function warpImageToQuad(ctx, img, dstCorners, gridSize) {
-  const coeffs = computeQuadCoeffs(dstCorners);
-  const W = img.naturalWidth || img.width, H = img.naturalHeight || img.height;
-  const n = gridSize;
-  for (let i = 0; i < n; i++) {
-    for (let j = 0; j < n; j++) {
-      const u0 = i / n, u1 = (i + 1) / n, v0 = j / n, v1 = (j + 1) / n;
-      const p00 = mapUnitToQuad(coeffs, u0, v0);
-      const p10 = mapUnitToQuad(coeffs, u1, v0);
-      const p01 = mapUnitToQuad(coeffs, u0, v1);
-      const sx = u0 * W, sy = v0 * H, sw = (u1 - u0) * W, sh = (v1 - v0) * H;
-      if (sw <= 0 || sh <= 0) continue;
-      const exx = (p10.x - p00.x) / sw, exy = (p10.y - p00.y) / sw;
-      const eyx = (p01.x - p00.x) / sh, eyy = (p01.y - p00.y) / sh;
-      ctx.save();
-      ctx.translate(p00.x, p00.y);
-      ctx.transform(exx, exy, eyx, eyy, 0, 0);
-      ctx.drawImage(img, sx, sy, sw, sh, -0.5, -0.5, sw + 1, sh + 1);
-      ctx.restore();
-    }
-  }
-}
-
-function quadPath(ctx, corners) {
-  ctx.beginPath();
-  ctx.moveTo(corners.tl.x, corners.tl.y);
-  ctx.lineTo(corners.tr.x, corners.tr.y);
-  ctx.lineTo(corners.br.x, corners.br.y);
-  ctx.lineTo(corners.bl.x, corners.bl.y);
-  ctx.closePath();
 }
 
 // =========================================================================
@@ -813,163 +672,6 @@ function getWatermarkConfig(brand) {
 }
 
 // =========================================================================
-// Mockup photo slots (corner-pin editor)
-// =========================================================================
-function defaultCorners() {
-  return {
-    tl: { u: 0.22, v: 0.16 },
-    tr: { u: 0.78, v: 0.16 },
-    br: { u: 0.78, v: 0.80 },
-    bl: { u: 0.22, v: 0.80 },
-  };
-}
-
-const mockupSlots = {
-  laptop: { img: null, corners: defaultCorners() },
-  phone: { img: null, corners: defaultCorners() },
-  custom: { img: null, corners: defaultCorners() },
-};
-
-const HANDLE_ORDER = ['tl', 'tr', 'br', 'bl'];
-
-function getCanvasPos(evt, canvas) {
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  return {
-    x: (evt.clientX - rect.left) * scaleX,
-    y: (evt.clientY - rect.top) * scaleY,
-  };
-}
-
-function redrawPinCanvas(kind) {
-  const slot = mockupSlots[kind];
-  const canvas = document.getElementById(`pinCanvas_${kind}`);
-  if (!canvas || !slot.img) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#eee';
-  ctx.fillRect(0, 0, W, H);
-
-  const rect = containRect(W, H, slot.img.naturalWidth, slot.img.naturalHeight);
-  ctx.drawImage(slot.img, 0, 0, slot.img.naturalWidth, slot.img.naturalHeight, rect.x, rect.y, rect.w, rect.h);
-
-  const dstCorners = {};
-  HANDLE_ORDER.forEach(k => {
-    dstCorners[k] = { x: rect.x + slot.corners[k].u * rect.w, y: rect.y + slot.corners[k].v * rect.h };
-  });
-
-  const design = getDesignImage();
-  if (design) {
-    ctx.save();
-    quadPath(ctx, dstCorners);
-    ctx.clip();
-    warpImageToQuad(ctx, design, dstCorners, 10);
-    ctx.restore();
-  }
-
-  ctx.save();
-  quadPath(ctx, dstCorners);
-  ctx.strokeStyle = '#ffffff';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-  ctx.strokeStyle = '#c96b4f';
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  ctx.restore();
-
-  HANDLE_ORDER.forEach(k => {
-    const p = dstCorners[k];
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 12, 0, Math.PI * 2);
-    ctx.fillStyle = '#ffffff';
-    ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#c96b4f';
-    ctx.stroke();
-  });
-}
-
-function redrawAllPinCanvases() {
-  Object.keys(mockupSlots).forEach(kind => {
-    if (mockupSlots[kind].img) redrawPinCanvas(kind);
-  });
-}
-
-function setupMockupSlot(kind) {
-  const fileInput = document.querySelector(`.mockup-upload[data-kind="${kind}"]`);
-  const wrap = document.getElementById(`pinWrap_${kind}`);
-  const canvas = document.getElementById(`pinCanvas_${kind}`);
-  const resetBtn = document.querySelector(`.reset-pin-btn[data-kind="${kind}"]`);
-
-  fileInput.addEventListener('change', () => {
-    const file = fileInput.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        mockupSlots[kind].img = img;
-        mockupSlots[kind].corners = defaultCorners();
-        wrap.hidden = false;
-        redrawPinCanvas(kind);
-      };
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
-  });
-
-  resetBtn.addEventListener('click', () => {
-    mockupSlots[kind].corners = defaultCorners();
-    redrawPinCanvas(kind);
-  });
-
-  let dragging = null;
-
-  canvas.addEventListener('pointerdown', evt => {
-    const slot = mockupSlots[kind];
-    if (!slot.img) return;
-    const pos = getCanvasPos(evt, canvas);
-    const rect = containRect(canvas.width, canvas.height, slot.img.naturalWidth, slot.img.naturalHeight);
-    let closest = null, closestDist = Infinity;
-    HANDLE_ORDER.forEach(k => {
-      const p = { x: rect.x + slot.corners[k].u * rect.w, y: rect.y + slot.corners[k].v * rect.h };
-      const d = Math.hypot(p.x - pos.x, p.y - pos.y);
-      if (d < closestDist) { closestDist = d; closest = k; }
-    });
-    if (closestDist < 40) {
-      dragging = closest;
-      canvas.setPointerCapture(evt.pointerId);
-    }
-  });
-
-  canvas.addEventListener('pointermove', evt => {
-    if (!dragging) return;
-    const slot = mockupSlots[kind];
-    const pos = getCanvasPos(evt, canvas);
-    const rect = containRect(canvas.width, canvas.height, slot.img.naturalWidth, slot.img.naturalHeight);
-    const u = Math.max(0, Math.min(1, (pos.x - rect.x) / rect.w));
-    const v = Math.max(0, Math.min(1, (pos.y - rect.y) / rect.h));
-    slot.corners[dragging] = { u, v };
-    redrawPinCanvas(kind);
-  });
-
-  function endDrag(evt) {
-    if (dragging) {
-      try { canvas.releasePointerCapture(evt.pointerId); } catch (e) { /* ignore */ }
-    }
-    dragging = null;
-  }
-  canvas.addEventListener('pointerup', endDrag);
-  canvas.addEventListener('pointercancel', endDrag);
-}
-
-setupMockupSlot('laptop');
-setupMockupSlot('phone');
-setupMockupSlot('custom');
-
-// =========================================================================
 // Template generators
 // =========================================================================
 function getBrand() {
@@ -998,80 +700,6 @@ function getProduct() {
     howItWorks: els.howItWorks.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
   };
-}
-
-function drawHero(ctx, brand, product, images, logoImg) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  if (images[0]) {
-    drawCover(ctx, 0, 0, SIZE, SIZE, images[0].img);
-    const grad = ctx.createLinearGradient(0, SIZE * 0.45, 0, SIZE);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(1, 'rgba(0,0,0,0.72)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, SIZE, SIZE);
-  } else {
-    ctx.fillStyle = brand.primaryColor;
-    roundRect(ctx, SIZE * 0.15, SIZE * 0.3, SIZE * 0.7, SIZE * 0.4, 40);
-    ctx.globalAlpha = 0.15;
-    ctx.fill();
-    ctx.globalAlpha = 1;
-  }
-
-  const textColor = images[0] ? '#ffffff' : contrastText(brand.accentColor);
-
-  if (logoImg) {
-    const lw = 200, lh = 200 * (logoImg.height / logoImg.width);
-    ctx.drawImage(logoImg, 70, 70, lw, Math.min(lh, 200));
-  }
-
-  if (product.badges[0]) {
-    ctx.font = `700 34px "${brand.font}"`;
-    const text = product.badges[0].toUpperCase();
-    const padX = 28;
-    const tw = ctx.measureText(text).width;
-    ctx.fillStyle = brand.primaryColor;
-    roundRect(ctx, SIZE - tw - padX * 2 - 70, 80, tw + padX * 2, 70, 35);
-    ctx.fill();
-    ctx.fillStyle = contrastText(brand.primaryColor);
-    ctx.textAlign = 'left';
-    ctx.fillText(text, SIZE - tw - padX - 70, 125);
-  }
-
-  const titleFontSize = 130, titleY = SIZE - 260;
-  const gradeSubject = [product.gradeLevel, product.subject].filter(Boolean).join('  •  ');
-  if (gradeSubject) {
-    ctx.font = `600 36px "${brand.font}"`;
-    const padX = 26, pillH = 62;
-    // Keep clear of the title's ascenders above its baseline, plus a gap.
-    const pillY = titleY - titleFontSize * 0.78 - 30 - pillH;
-    const tw = ctx.measureText(gradeSubject).width;
-    ctx.fillStyle = brand.primaryColor;
-    roundRect(ctx, 90, pillY, tw + padX * 2, pillH, pillH / 2);
-    ctx.fill();
-    ctx.fillStyle = contrastText(brand.primaryColor);
-    ctx.textAlign = 'left';
-    ctx.fillText(gradeSubject, 90 + padX, pillY + pillH / 2 + 13);
-  }
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 ${titleFontSize}px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  const nameBottom = wrapText(ctx, product.name, 90, titleY, SIZE - 180, 140, 'left');
-
-  if (product.tagline) {
-    ctx.font = `500 52px "${brand.font}"`;
-    ctx.fillStyle = textColor;
-    ctx.globalAlpha = 0.92;
-    wrapText(ctx, product.tagline, 90, nameBottom + 20, SIZE - 180, 64, 'left');
-    ctx.globalAlpha = 1;
-  }
-
-  ctx.font = `600 40px "${brand.font}"`;
-  ctx.fillStyle = images[0] ? '#ffffff' : brand.primaryColor;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName, 90, SIZE - 60);
 }
 
 // Splits a "What's Included" line like "3 Placeholder Sizes — 9, 16, 25 per
@@ -2045,346 +1673,155 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
-function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  const img = images[1] ? images[1].img : (images[0] ? images[0].img : null);
-  let deviceBottom;
-  let screenRect;
-
-  if (kind === 'laptop') {
-    const bodyW = SIZE * 0.78, bodyX = (SIZE - bodyW) / 2;
-    const screenY = SIZE * 0.16, screenH = SIZE * 0.52;
-    const bezel = 26;
-
-    ctx.fillStyle = '#20201f';
-    roundRect(ctx, bodyX, screenY, bodyW, screenH, 28);
-    ctx.fill();
-
-    const scrX = bodyX + bezel, scrY = screenY + bezel, scrW = bodyW - bezel * 2, scrH = screenH - bezel * 2;
-    if (img) {
-      ctx.save();
-      roundRect(ctx, scrX, scrY, scrW, scrH, 6);
-      ctx.clip();
-      drawCover(ctx, scrX, scrY, scrW, scrH, img);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = brand.primaryColor;
-      ctx.fillRect(scrX, scrY, scrW, scrH);
-    }
-    screenRect = { x: scrX, y: scrY, w: scrW, h: scrH, radius: 6 };
-
-    const baseY = screenY + screenH;
-    ctx.fillStyle = '#3a3a38';
-    ctx.beginPath();
-    ctx.moveTo(bodyX - 40, baseY + 50);
-    ctx.lineTo(bodyX + bodyW + 40, baseY + 50);
-    ctx.lineTo(bodyX + bodyW + 10, baseY);
-    ctx.lineTo(bodyX - 10, baseY);
-    ctx.closePath();
-    ctx.fill();
-    deviceBottom = baseY + 50;
-  } else {
-    const bodyW = SIZE * 0.34, bodyH = SIZE * 0.56;
-    const bodyX = (SIZE - bodyW) / 2, bodyY = SIZE * 0.09;
-    const bezel = 22;
-
-    ctx.fillStyle = '#20201f';
-    roundRect(ctx, bodyX, bodyY, bodyW, bodyH, 70);
-    ctx.fill();
-
-    const scrX = bodyX + bezel, scrY = bodyY + bezel, scrW = bodyW - bezel * 2, scrH = bodyH - bezel * 2;
-    if (img) {
-      ctx.save();
-      roundRect(ctx, scrX, scrY, scrW, scrH, 40);
-      ctx.clip();
-      drawCover(ctx, scrX, scrY, scrW, scrH, img);
-      ctx.restore();
-    } else {
-      ctx.fillStyle = brand.primaryColor;
-      roundRect(ctx, scrX, scrY, scrW, scrH, 40);
-      ctx.fill();
-    }
-    screenRect = { x: scrX, y: scrY, w: scrW, h: scrH, radius: 40 };
-
-    ctx.fillStyle = '#111';
-    roundRect(ctx, bodyX + bodyW / 2 - 60, bodyY + 14, 120, 16, 8);
-    ctx.fill();
-    deviceBottom = bodyY + bodyH;
-  }
-
-  if (watermark) {
-    ctx.save();
-    roundRect(ctx, screenRect.x, screenRect.y, screenRect.w, screenRect.h, screenRect.radius);
-    ctx.clip();
-    drawWatermark(ctx, watermark.text, watermark, screenRect);
-    ctx.restore();
-  }
-
-  const textColor = contrastText(brand.accentColor);
-  const textTop = deviceBottom + (SIZE - 130 - deviceBottom) / 2 - 20;
-  ctx.fillStyle = textColor;
-  ctx.font = `700 74px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  wrapText(ctx, product.name, SIZE / 2, textTop, SIZE * 0.8, 84, 'center');
-
-  ctx.font = `600 34px "${brand.font}"`;
-  ctx.fillStyle = brand.primaryColor;
-  ctx.textAlign = 'center';
-  ctx.fillText(brand.companyName, SIZE / 2, SIZE - 70);
-}
-
-function drawPhotoMockup(ctx, brand, slot, designImg, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-
-  const rect = containRect(SIZE, SIZE, slot.img.naturalWidth, slot.img.naturalHeight);
-  ctx.drawImage(slot.img, 0, 0, slot.img.naturalWidth, slot.img.naturalHeight, rect.x, rect.y, rect.w, rect.h);
-
-  const dstCorners = {};
-  HANDLE_ORDER.forEach(k => {
-    dstCorners[k] = { x: rect.x + slot.corners[k].u * rect.w, y: rect.y + slot.corners[k].v * rect.h };
-  });
-
-  if (designImg) {
-    ctx.save();
-    quadPath(ctx, dstCorners);
-    ctx.clip();
-    warpImageToQuad(ctx, designImg, dstCorners, 24);
-    ctx.restore();
-  } else {
-    ctx.save();
-    quadPath(ctx, dstCorners);
-    ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.25;
-    ctx.fill();
-    ctx.restore();
-  }
-
-  if (watermark) {
-    const xs = HANDLE_ORDER.map(k => dstCorners[k].x);
-    const ys = HANDLE_ORDER.map(k => dstCorners[k].y);
-    const bounds = {
-      x: Math.min(...xs), y: Math.min(...ys),
-      w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys),
-    };
-    ctx.save();
-    quadPath(ctx, dstCorners);
-    ctx.clip();
-    drawWatermark(ctx, watermark.text, watermark, bounds);
-    ctx.restore();
-  }
-}
-
-function drawMultiPageGrid(ctx, brand, product, images) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = contrastText(brand.accentColor);
-
-  ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 40px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText(brand.companyName.toUpperCase(), SIZE / 2, 110);
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 78px "${brand.font}"`;
-  ctx.fillText(`See All ${images.length} Pages`, SIZE / 2, 210);
-
-  const margin = 90, gap = 26;
-  const gridTop = 270, gridBottom = SIZE - 70;
-  const n = images.length;
-  const cols = Math.max(1, Math.ceil(Math.sqrt(n)));
-  const rows = Math.ceil(n / cols);
-  const cellW = (SIZE - margin * 2 - (cols - 1) * gap) / cols;
-  const cellH = (gridBottom - gridTop - (rows - 1) * gap) / rows;
-  const badgeR = Math.max(12, Math.min(22, Math.min(cellW, cellH) * 0.15));
-
-  images.forEach((item, i) => {
-    const col = i % cols, row = Math.floor(i / cols);
-    const x = margin + col * (cellW + gap);
-    const y = gridTop + row * (cellH + gap);
-
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.18)';
-    ctx.shadowBlur = 24;
-    ctx.shadowOffsetY = 10;
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, x, y, cellW, cellH, 14);
-    ctx.fill();
-    ctx.restore();
-
-    const pad = Math.min(14, Math.min(cellW, cellH) * 0.08);
-    const innerX = x + pad, innerY = y + pad, innerW = cellW - pad * 2, innerH = cellH - pad * 2;
-    ctx.save();
-    roundRect(ctx, x, y, cellW, cellH, 14);
-    ctx.clip();
-    const img = item.img;
-    const scale = Math.min(innerW / img.width, innerH / img.height);
-    const dw = img.width * scale, dh = img.height * scale;
-    const dx = innerX + (innerW - dw) / 2, dy = innerY + (innerH - dh) / 2;
-    ctx.drawImage(img, dx, dy, dw, dh);
-    ctx.restore();
-
-    ctx.fillStyle = brand.primaryColor;
-    ctx.beginPath();
-    ctx.arc(x + badgeR + 8, y + badgeR + 8, badgeR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = contrastText(brand.primaryColor);
-    ctx.font = `700 ${Math.round(badgeR * 1.1)}px "${brand.font}"`;
-    ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), x + badgeR + 8, y + badgeR + 8 + badgeR * 0.35);
-  });
-}
-
-function drawIncluded(ctx, brand, product) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = contrastText(brand.accentColor);
-
-  ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 46px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText(brand.companyName.toUpperCase(), SIZE / 2, 160);
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 90px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText("What's Included", SIZE / 2, 300);
-
-  const items = product.bullets.length ? product.bullets : ['Add items in the "What\'s Included" field'];
-  const startY = 460;
-  const lineGap = Math.min(150, (SIZE - startY - 200) / items.length);
-  const boxX = SIZE * 0.14, boxW = SIZE * 0.72;
-
-  items.slice(0, 10).forEach((item, i) => {
-    const y = startY + i * lineGap;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.beginPath();
-    ctx.arc(boxX + 30, y, 30, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = contrastText(brand.primaryColor);
-    ctx.lineWidth = 6;
-    ctx.beginPath();
-    ctx.moveTo(boxX + 16, y);
-    ctx.lineTo(boxX + 26, y + 12);
-    ctx.lineTo(boxX + 46, y - 14);
-    ctx.stroke();
-
-    ctx.fillStyle = textColor;
-    ctx.font = `500 46px "${brand.font}"`;
-    ctx.textAlign = 'left';
-    ctx.fillText(item, boxX + 80, y + 15, boxW - 80);
-  });
-}
-
-const DEFAULT_HOW_IT_WORKS_STEPS = [
-  'Purchase & instant download',
-  'Open your files',
-  'Edit or print',
-  'Enjoy!',
+// "Your Download Is Ready in Minutes" guide — entirely fixed (no images, no
+// product-specific text), the last of the 7 listing images. Always the same
+// post-purchase walkthrough regardless of which product this happens to be.
+const DOWNLOAD_READY_STEPS = [
+  { n: '1', heading: 'PURCHASE', desc: 'Complete your Etsy order.' },
+  { n: '2', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
+  { n: '3', heading: 'UNZIP', desc: 'Open the downloaded ZIP folder.' },
+  { n: '4', heading: 'CHOOSE YOUR FILES', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
+  { n: '5', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
 ];
 
-function drawHowItWorks(ctx, brand, product) {
+function drawDownloadReady(ctx, brand, product) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
 
+  // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 46px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText(brand.companyName.toUpperCase(), SIZE / 2, 160);
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
 
-  ctx.fillStyle = textColor;
-  ctx.font = `700 90px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText('How It Works', SIZE / 2, 300);
-
-  const steps = (product.howItWorks.length ? product.howItWorks : DEFAULT_HOW_IT_WORKS_STEPS).slice(0, 6);
-  const top = 440, bottom = SIZE - 150;
-  const n = steps.length;
-  const rowH = (bottom - top) / n;
-  const circleR = 60, circleX = SIZE * 0.18;
-  const textX = circleX + circleR + 60;
-  const textMaxW = SIZE - textX - 110;
-
-  steps.forEach((step, i) => {
-    const cy = top + rowH * i + rowH / 2;
-
-    if (i < n - 1) {
-      ctx.strokeStyle = brand.primaryColor;
-      ctx.globalAlpha = 0.35;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.moveTo(circleX, cy + circleR);
-      ctx.lineTo(circleX, cy + rowH - circleR);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    ctx.fillStyle = brand.primaryColor;
-    ctx.beginPath();
-    ctx.arc(circleX, cy, circleR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = contrastText(brand.primaryColor);
-    ctx.font = `700 56px "${brand.font}"`;
-    ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), circleX, cy + 20);
-
-    ctx.fillStyle = textColor;
-    ctx.font = `600 50px "${brand.font}"`;
-    ctx.textAlign = 'left';
-    wrapText(ctx, step, textX, cy + 18, textMaxW, 56, 'left');
-  });
-}
-
-function drawBadges(ctx, brand, product) {
-  ctx.fillStyle = brand.primaryColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = contrastText(brand.primaryColor);
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 60px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.globalAlpha = 0.85;
-  ctx.fillText(brand.companyName, SIZE / 2, 160);
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
   ctx.globalAlpha = 1;
 
-  ctx.font = `700 92px "${brand.font}"`;
-  wrapText(ctx, product.name, SIZE / 2, 330, SIZE * 0.8, 100, 'center');
+  // ---- Title (fixed, two lines) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Your Download Is Ready', margin, 250);
+  ctx.fillText('in Minutes', margin, 340);
 
-  const badges = product.badges.length ? product.badges : ['Instant Download'];
-  ctx.font = `600 42px "${brand.font}"`;
-  const padX = 44, padY = 26, gapX = 30, gapY = 30;
-  const rows = [];
-  let row = [], rowW = 0;
-  const maxRowW = SIZE * 0.8;
-  badges.forEach(b => {
-    const w = ctx.measureText(b).width + padX * 2;
-    if (rowW + w + gapX > maxRowW && row.length) {
-      rows.push({ row, rowW: rowW - gapX });
-      row = []; rowW = 0;
-    }
-    row.push({ text: b, w });
-    rowW += w + gapX;
-  });
-  if (row.length) rows.push({ row, rowW: rowW - gapX });
+  // ---- Subtitle (fixed) ----
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'A simple guide to what happens after you purchase.', margin, 416, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
 
-  const chipH = 100;
-  let y = SIZE * 0.52;
-  rows.forEach(({ row, rowW }) => {
-    let x = (SIZE - rowW) / 2;
-    row.forEach(({ text, w }) => {
-      ctx.fillStyle = '#ffffff';
-      roundRect(ctx, x, y, w, chipH, chipH / 2);
-      ctx.fill();
+  // ---- Five stacked step rows, connected by arrows ----
+  const rowsTop = 560;
+  const rowH = 160;
+  const rowGap = 40;
+  const circleR = 40;
+  const circleCx = margin + 70;
+  const textX = margin + 150;
+  const textMaxW = contentW - 190;
+
+  DOWNLOAD_READY_STEPS.forEach((step, i) => {
+    const rowTop = rowsTop + i * (rowH + rowGap);
+    const cy = rowTop + rowH / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, margin, rowTop, contentW, rowH, 18);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, margin, rowTop, contentW, rowH, 18);
+    ctx.stroke();
+
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    ctx.arc(circleCx, cy, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.font = `700 34px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(step.n, circleCx, cy + 12);
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 30px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    ctx.fillText(step.heading, textX, cy - 12);
+
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.75;
+    ctx.font = `500 24px "${brand.font}"`;
+    wrapText(ctx, step.desc, textX, cy + 26, textMaxW, 30, 'left');
+    ctx.globalAlpha = 1;
+
+    if (i < DOWNLOAD_READY_STEPS.length - 1) {
+      const arrowCy = rowTop + rowH + rowGap / 2;
       ctx.fillStyle = brand.primaryColor;
-      ctx.textAlign = 'center';
-      ctx.fillText(text, x + w / 2, y + chipH / 2 + 15);
-      x += w + gapX;
-    });
-    y += chipH + gapY;
+      ctx.globalAlpha = 0.5;
+      ctx.beginPath();
+      ctx.moveTo(circleCx - 9, arrowCy - 8);
+      ctx.lineTo(circleCx + 9, arrowCy - 8);
+      ctx.lineTo(circleCx, arrowCy + 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+    }
   });
+
+  // ---- Highlighted note box ----
+  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 50;
+  const boxH = 170;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 38px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 64);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.65;
+  ctx.font = `500 26px "${brand.font}"`;
+  ctx.fillText('You do not need to print every file — just choose the version you want.', SIZE / 2, boxTop + 112);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.55;
+  ctx.font = `500 26px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('Digital download only • No physical product will be shipped', SIZE / 2, SIZE - 140);
+  ctx.globalAlpha = 1;
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
 // =========================================================================
@@ -2599,89 +2036,54 @@ els.form.addEventListener('submit', async e => {
   const product = getProduct();
   await ensureFont(brand.font);
 
-  const logoImg = null; // no logo upload for now — see COLOR_SCHEMES above
-
-  const designImg = getDesignImage();
-
   const watermark = getWatermarkConfig(brand);
   const watermarkFor = (key) => (watermark.enabled && watermark.targets.has(key)) ? watermark : null;
 
-  // Candidate templates, in upload order. Some only appear when there's data
-  // for them (a custom mockup photo, or enough pages for a preview grid) —
-  // numbering below is assigned after filtering, so the sequence stays clean.
+  // Fixed set of 7 listing images for the Checklist + Placeholders product
+  // type — order matters, it's the Etsy listing order.
   const candidates = [
     {
       label: 'Hero Cover',
       key: 'hero',
       include: true,
-      // The checklist collage layout requires all 3 dedicated preview
-      // images (enforced before we even get here — see the submit handler's
-      // validation) — falls back to the standard hero otherwise.
-      fn: (ctx) => (product.type === 'checklist' && missingChecklistImageLabels().length === 0)
-        ? drawChecklistHero(ctx, brand, product, checklistImages.color, watermarkFor('hero'))
-        : drawHero(ctx, brand, product, uploadedImages, logoImg),
+      fn: (ctx) => drawChecklistHero(ctx, brand, product, checklistImages.color, watermarkFor('hero')),
     },
     {
       label: 'Everything Included',
       key: 'showcase',
-      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      include: true,
       fn: (ctx) => drawIncludedShowcase(ctx, brand, product, checklistImages, watermarkFor('showcase')),
     },
     {
       label: 'Choose Your Size',
       key: 'sizes',
-      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      include: true,
       fn: (ctx) => drawSizeGuide(ctx, brand, product, checklistImages, watermarkFor('sizes')),
     },
     {
       label: 'Print Style',
       key: 'printstyle',
-      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      include: true,
       fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
     },
     {
       label: '3 Easy Steps',
       key: 'easysteps',
-      include: product.type === 'checklist',
+      include: true,
       fn: (ctx) => drawEasySteps(ctx, brand, product),
     },
     {
       label: 'Track Your Collection',
       key: 'checklistguide',
-      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      include: true,
       fn: (ctx) => drawChecklistGuide(ctx, brand, product, checklistImages, watermarkFor('checklistguide')),
     },
     {
-      label: 'Laptop Mockup',
-      key: 'laptop',
+      label: 'Your Download Is Ready',
+      key: 'ready',
       include: true,
-      fn: (ctx) => mockupSlots.laptop.img
-        ? drawPhotoMockup(ctx, brand, mockupSlots.laptop, designImg, watermarkFor('laptop'))
-        : drawIllustratedMockup(ctx, brand, product, uploadedImages, 'laptop', watermarkFor('laptop')),
+      fn: (ctx) => drawDownloadReady(ctx, brand, product),
     },
-    {
-      label: 'Phone Mockup',
-      key: 'phone',
-      include: true,
-      fn: (ctx) => mockupSlots.phone.img
-        ? drawPhotoMockup(ctx, brand, mockupSlots.phone, designImg, watermarkFor('phone'))
-        : drawIllustratedMockup(ctx, brand, product, uploadedImages, 'phone', watermarkFor('phone')),
-    },
-    {
-      label: 'Custom Mockup',
-      key: 'custom',
-      include: !!mockupSlots.custom.img,
-      fn: (ctx) => drawPhotoMockup(ctx, brand, mockupSlots.custom, designImg, watermarkFor('custom')),
-    },
-    {
-      label: 'Multi-Page Preview',
-      key: 'pages',
-      include: uploadedImages.length >= 2,
-      fn: (ctx) => drawMultiPageGrid(ctx, brand, product, uploadedImages),
-    },
-    { label: "What's Included", key: 'included', include: true, fn: (ctx) => drawIncluded(ctx, brand, product) },
-    { label: 'How It Works', key: 'steps', include: true, fn: (ctx) => drawHowItWorks(ctx, brand, product) },
-    { label: 'Feature Badges', key: 'badges', include: true, fn: (ctx) => drawBadges(ctx, brand, product) },
   ];
 
   const templates = candidates.filter(t => t.include).map((t, i) => ({
@@ -2689,14 +2091,13 @@ els.form.addEventListener('submit', async e => {
     name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
   }));
 
-  // Laptop/phone/custom mockups, the Hero Cover, the Everything Included
-  // showcase, the Choose Your Size guide, the Print Style guide, and the
-  // Track Your Collection guide all draw their own watermark internally,
-  // clipped to their screen/display/image areas — applying it again here
-  // would double it up across the whole canvas. The multi-page grid and the
-  // text-only guides (What's Included, How It Works, 3 Easy Steps, Feature
-  // Badges) have no such area, so they get the full-canvas treatment.
-  const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'easysteps', 'badges', 'pages']);
+  // The Hero Cover, Everything Included showcase, Choose Your Size guide,
+  // Print Style guide, and Track Your Collection guide all draw their own
+  // watermark internally, clipped to their image areas — applying it again
+  // here would double it up across the whole canvas. 3 Easy Steps and Your
+  // Download Is Ready have no such area, so they get the full-canvas
+  // treatment.
+  const fullCanvasWatermarkKeys = new Set(['easysteps', 'ready']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
