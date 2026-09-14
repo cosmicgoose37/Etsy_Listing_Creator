@@ -1139,8 +1139,8 @@ const SHOWCASE_SIZE_OPTIONS = [
 ];
 const SHOWCASE_STEPS = [
   'Unzip your instant download',
-  'Pick color or greyscale',
   'Choose 9, 16 or 25 cards/page',
+  'Pick color or greyscale',
   'Print, cut & place in your binder',
 ];
 const SHOWCASE_CARDS = [
