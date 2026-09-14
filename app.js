@@ -1077,155 +1077,90 @@ function splitFeatureLine(text) {
   return { label: text, sub: '' };
 }
 
-function drawImageCard(ctx, x, y, w, h, img, caption, brand) {
-  ctx.save();
-  ctx.shadowColor = 'rgba(0,0,0,0.14)';
-  ctx.shadowBlur = 22;
-  ctx.shadowOffsetY = 8;
-  ctx.fillStyle = '#ffffff';
-  roundRect(ctx, x, y, w, h, 16);
-  ctx.fill();
-  ctx.restore();
-
-  ctx.save();
-  roundRect(ctx, x, y, w, h, 16);
-  ctx.clip();
-  if (img) {
-    drawCover(ctx, x, y, w, h, img);
-  } else {
-    ctx.fillStyle = brand.accentColor;
-    ctx.fillRect(x, y, w, h);
-  }
-  const barH = 66;
-  ctx.fillStyle = 'rgba(255,255,255,0.94)';
-  ctx.fillRect(x, y, w, barH);
-  ctx.fillStyle = '#221c17';
-  ctx.font = `700 28px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(caption.toUpperCase(), x + 22, y + barH / 2 + 10);
-  ctx.restore();
-}
-
-function drawInstructionBox(ctx, x, y, w, h, brand, product) {
-  ctx.fillStyle = '#ffffff';
-  roundRect(ctx, x, y, w, h, 16);
-  ctx.fill();
-
-  const pad = 30;
-  let ly = y + pad + 30;
-  ctx.textAlign = 'left';
-
-  ctx.fillStyle = '#221c17';
-  ctx.font = `700 32px "${brand.font}"`;
-  ly = wrapText(ctx, 'Print • Cut • Use', x + pad, ly, w - pad * 2, 38, 'left') + 6;
-
-  ctx.fillStyle = brand.primaryColor;
-  ctx.font = `600 26px "${brand.font}"`;
-  ctx.fillText('Instant Download → Unzip', x + pad, ly);
-  ly += 42;
-
-  const lines = product.howItWorks.length
-    ? product.howItWorks.slice(0, 2)
-    : ['Pick your size + style', 'Print or use digitally'];
-  ctx.fillStyle = '#7a6f66';
-  ctx.font = `400 25px "${brand.font}"`;
-  lines.forEach(line => {
-    ly = wrapText(ctx, line, x + pad, ly, w - pad * 2, 32, 'left') + 2;
-  });
-}
-
 function drawChecklistHero(ctx, brand, product, checklistImg, colorImg, greyImg) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = textColorFor(brand, contrastText(brand.accentColor));
-  const margin = 90;
+  const margin = 100;
   const contentW = SIZE - margin * 2;
 
   // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 34px "${brand.font}"`;
+  ctx.font = `700 32px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 110);
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
 
   ctx.strokeStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.35;
+  ctx.globalAlpha = 0.25;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(margin, 132);
-  ctx.lineTo(SIZE - margin, 132);
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
   // ---- Headline ----
   ctx.fillStyle = textColor;
-  ctx.font = `700 96px "${brand.font}"`;
+  ctx.font = `700 92px "${brand.font}"`;
   ctx.textAlign = 'left';
-  let y = wrapText(ctx, product.name, margin, 240, contentW, 100, 'left');
+  let y = wrapText(ctx, product.name, margin, 232, contentW, 96, 'left');
 
   if (product.tagline) {
-    ctx.font = `500 40px "${brand.font}"`;
-    ctx.globalAlpha = 0.75;
-    y = wrapText(ctx, product.tagline, margin, y + 2, contentW, 46, 'left');
+    ctx.font = `500 38px "${brand.font}"`;
+    ctx.globalAlpha = 0.7;
+    y = wrapText(ctx, product.tagline, margin, y + 4, contentW, 44, 'left');
     ctx.globalAlpha = 1;
   }
 
-  // ---- Feature row (from the first 3 "What's Included" lines) ----
-  const featureTop = 530;
-  const featureH = 150;
-  const fGap = 28;
-  const boxW = (contentW - fGap * 2) / 3;
-  const features = (product.bullets.length ? product.bullets : ['Instant Download', 'High Quality', 'Easy to Use']).slice(0, 3);
-
-  features.forEach((raw, i) => {
-    const { label, sub } = splitFeatureLine(raw);
-    const x = margin + i * (boxW + fGap);
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, x, featureTop, boxW, featureH, 14);
-    ctx.fill();
-    const pad = 26;
-    ctx.fillStyle = '#221c17';
-    ctx.font = `700 30px "${brand.font}"`;
-    ctx.textAlign = 'left';
-    let ly = wrapText(ctx, label.toUpperCase(), x + pad, featureTop + 52, boxW - pad * 2, 34, 'left');
-    if (sub) {
-      ctx.font = `400 23px "${brand.font}"`;
-      ctx.fillStyle = '#8a8078';
-      wrapText(ctx, sub, x + pad, ly + 4, boxW - pad * 2, 28, 'left');
-    }
-  });
-
-  // ---- Image grid ----
-  const gridTop = featureTop + featureH + 40;
-  const row1H = 730, row2H = 380, gGap = 26;
-  const colW = (contentW - gGap) / 2;
-  const row2Y = gridTop + row1H + gGap;
-
-  drawImageCard(ctx, margin, gridTop, colW, row1H, checklistImg, 'Fillable Checklist', brand);
-  drawImageCard(ctx, margin + colW + gGap, gridTop, colW, row1H, colorImg, 'Color Placeholders', brand);
-  drawImageCard(ctx, margin, row2Y, colW, row2H, greyImg, 'Greyscale Placeholders', brand);
-  drawInstructionBox(ctx, margin + colW + gGap, row2Y, colW, row2H, brand, product);
-
-  // ---- Footer ----
-  const footerY = SIZE - 120;
-  ctx.strokeStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.3;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(margin, footerY);
-  ctx.lineTo(SIZE - margin, footerY);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
+  // ---- Feature line — one simple line, not boxes, to keep this calm ----
+  const features = (product.bullets.length ? product.bullets : ['Instant Download', 'High Quality', 'Easy to Use'])
+    .slice(0, 3)
+    .map(raw => splitFeatureLine(raw).label);
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
+  ctx.font = `600 34px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, footerY + 56);
+  const featureY = y + 56;
+  const featureBottom = wrapText(ctx, features.join('   •   ').toUpperCase(), margin, featureY, contentW, 42, 'left');
 
-  const badgeText = (product.badges[0] || 'Digital Download').toUpperCase();
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.fillStyle = textColor;
-  ctx.textAlign = 'right';
-  ctx.fillText(badgeText, SIZE - margin, footerY + 56);
+  // ---- Image row — the main focus, three clean labeled photos side by side ----
+  const gap = 30;
+  const capH = 54;
+  const imagesTop = featureBottom + 30;
+  const imagesBottom = SIZE - 110;
+  const imgH = imagesBottom - imagesTop - capH;
+  const colW = (contentW - gap * 2) / 3;
+
+  const items = [
+    { img: checklistImg, caption: 'Fillable Checklist' },
+    { img: colorImg, caption: 'Color Placeholders' },
+    { img: greyImg, caption: 'Greyscale Placeholders' },
+  ];
+
+  items.forEach((item, i) => {
+    const x = margin + i * (colW + gap);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `700 28px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    ctx.fillText(item.caption.toUpperCase(), x, imagesTop + 28);
+
+    const cardY = imagesTop + capH;
+    ctx.save();
+    roundRect(ctx, x, cardY, colW, imgH, 14);
+    ctx.clip();
+    if (item.img) {
+      drawCover(ctx, x, cardY, colW, imgH, item.img);
+    } else {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x, cardY, colW, imgH);
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, x, cardY, colW, imgH, 14);
+    ctx.stroke();
+  });
 }
 
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
