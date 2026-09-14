@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789425189" />
+<link rel="stylesheet" href="style.css?v=1789425645" />
 </head>
 <body>
 <header class="topbar">
@@ -143,7 +143,7 @@ Enjoy!"></textarea>
 
       <section class="field-group" id="checklistImagesSection" hidden>
         <h2>Preview Images <span class="hint">required for this product type</span></h2>
-        <p class="hint">These build the Hero Cover and the "Everything Included" showcase image automatically, alongside your product name and shop name.</p>
+        <p class="hint">These build the Hero Cover, the "Everything Included" showcase, and the "Choose the Size" image automatically, alongside your product name and shop name.</p>
 
         <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
           <input type="file" accept="image/*" id="checklistImgChecklist" />
@@ -159,6 +159,21 @@ Enjoy!"></textarea>
           <input type="file" accept="image/*" id="checklistImgGrey" />
         </label>
         <div class="logo-preview" id="checklistImgGreyPreview"></div>
+
+        <label>9 Cards/Page Layout Preview <span class="hint" id="checklistImgSize9Status">— required</span>
+          <input type="file" accept="image/*" id="checklistImgSize9" />
+        </label>
+        <div class="logo-preview" id="checklistImgSize9Preview"></div>
+
+        <label>16 Cards/Page Layout Preview <span class="hint" id="checklistImgSize16Status">— required</span>
+          <input type="file" accept="image/*" id="checklistImgSize16" />
+        </label>
+        <div class="logo-preview" id="checklistImgSize16Preview"></div>
+
+        <label>25 Cards/Page Layout Preview <span class="hint" id="checklistImgSize25Status">— required</span>
+          <input type="file" accept="image/*" id="checklistImgSize25" />
+        </label>
+        <div class="logo-preview" id="checklistImgSize25Preview"></div>
       </section>
 
       <section class="field-group">
@@ -250,6 +265,7 @@ Enjoy!"></textarea>
           <div class="badge-options" id="watermarkTargets">
             <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
             <label class="chip"><input type="checkbox" value="showcase" checked> Everything Included</label>
+            <label class="chip"><input type="checkbox" value="sizes" checked> Choose Your Size</label>
             <label class="chip"><input type="checkbox" value="laptop" checked> Laptop Mockup</label>
             <label class="chip"><input type="checkbox" value="phone" checked> Phone Mockup</label>
             <label class="chip"><input type="checkbox" value="custom" checked> Custom Mockup</label>
@@ -287,6 +303,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789425189"></script>
+<script src="app.js?v=1789425645"></script>
 </body>
 </html>

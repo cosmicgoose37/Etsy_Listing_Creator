@@ -75,6 +75,15 @@ const els = {
   checklistImgGrey: document.getElementById('checklistImgGrey'),
   checklistImgGreyPreview: document.getElementById('checklistImgGreyPreview'),
   checklistImgGreyStatus: document.getElementById('checklistImgGreyStatus'),
+  checklistImgSize9: document.getElementById('checklistImgSize9'),
+  checklistImgSize9Preview: document.getElementById('checklistImgSize9Preview'),
+  checklistImgSize9Status: document.getElementById('checklistImgSize9Status'),
+  checklistImgSize16: document.getElementById('checklistImgSize16'),
+  checklistImgSize16Preview: document.getElementById('checklistImgSize16Preview'),
+  checklistImgSize16Status: document.getElementById('checklistImgSize16Status'),
+  checklistImgSize25: document.getElementById('checklistImgSize25'),
+  checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
+  checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -156,7 +165,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 18,
-    watermarkTargets: ['hero', 'showcase', 'laptop', 'phone', 'custom', 'pages'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
 
@@ -340,7 +349,7 @@ function syncGradeSubjectVisibility() {
 // Kept separate from the generic multi-image uploader so there's no
 // ambiguity about which photo it is.
 // =========================================================================
-const checklistImages = { checklist: null, color: null, grey: null };
+const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
@@ -367,12 +376,18 @@ function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
 bindChecklistImageUpload(els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus, 'checklist');
 bindChecklistImageUpload(els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus, 'color');
 bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.checklistImgGreyStatus, 'grey');
+bindChecklistImageUpload(els.checklistImgSize9, els.checklistImgSize9Preview, els.checklistImgSize9Status, 'size9');
+bindChecklistImageUpload(els.checklistImgSize16, els.checklistImgSize16Preview, els.checklistImgSize16Status, 'size16');
+bindChecklistImageUpload(els.checklistImgSize25, els.checklistImgSize25Preview, els.checklistImgSize25Status, 'size25');
 
 function missingChecklistImageLabels() {
   const missing = [];
   if (!checklistImages.checklist) missing.push('Checklist Screenshot');
   if (!checklistImages.color) missing.push('Color Placeholders Preview');
   if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
+  if (!checklistImages.size9) missing.push('9 Cards/Page Layout Preview');
+  if (!checklistImages.size16) missing.push('16 Cards/Page Layout Preview');
+  if (!checklistImages.size25) missing.push('25 Cards/Page Layout Preview');
   return missing;
 }
 
@@ -1348,6 +1363,165 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   ctx.fillText(brand.companyName.toUpperCase(), SIZE - margin, SIZE - 55);
 }
 
+// "Choose the Size" guide — layout is fixed on purpose (title, subtitle,
+// card labels/descriptions/badges, and the highlight box never change);
+// only the 3 layout-preview images differ, one per card size.
+const SIZE_GUIDE_CARDS = [
+  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', badge: 'ACTUAL PRODUCT PREVIEW', caption: '9 cards/page' },
+  { key: 'size16', n: '16', label: 'COMPACT', desc: 'Smaller layout • saves paper', badge: 'LAYOUT MOCKUP', caption: '16 cards/page' },
+  { key: 'size25', n: '25', label: 'MINI', desc: 'Most compact • maximum efficiency', badge: 'ACTUAL PRODUCT PREVIEW', caption: '25 cards/page' },
+];
+
+function drawSizeGuide(ctx, brand, product, images, watermark) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Choose the Size That', margin, 250);
+  ctx.fillText('Fits Your Binder', margin, 340);
+
+  // ---- Subtitle (fixed — this image never reflects the product name) ----
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'All 3 placeholder layouts are included — print only the version you want.', margin, 416, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Three size cards ----
+  const cardsTop = 560;
+  const cardGap = 40;
+  const cardW = (contentW - cardGap * 2) / 3;
+  const cardH = 1080;
+  const pad = 28;
+
+  SIZE_GUIDE_CARDS.forEach((opt, i) => {
+    const cardX = margin + i * (cardW + cardGap);
+    const cx = cardX + cardW / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 84px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(opt.n, cx, cardsTop + 112);
+
+    ctx.fillStyle = brand.primaryColor;
+    ctx.font = `700 30px "${brand.font}"`;
+    ctx.fillText(opt.label, cx, cardsTop + 164);
+
+    ctx.fillStyle = '#6b6259';
+    ctx.font = `500 25px "${brand.font}"`;
+    ctx.fillText(opt.desc, cx, cardsTop + 200);
+
+    const imgX = cardX + pad, imgY = cardsTop + 244, imgW = cardW - pad * 2, imgH = 560;
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
+    ctx.clip();
+    const img = images[opt.key];
+    if (img) {
+      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+    } else {
+      ctx.fillStyle = '#f1ece4';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+    if (watermark) {
+      drawWatermark(ctx, watermark.text, watermark, { x: imgX, y: imgY, w: imgW, h: imgH });
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
+    ctx.stroke();
+
+    const badgeY = imgY + imgH + 36;
+    ctx.font = `700 20px "${brand.font}"`;
+    const badgeW = ctx.measureText(opt.badge).width + 40;
+    const badgeH = 46;
+    const badgeX = cx - badgeW / 2;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.12;
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(opt.badge, cx, badgeY + badgeH / 2 + 7);
+
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.65;
+    ctx.font = `500 28px "${brand.font}"`;
+    ctx.fillText(opt.caption, cx, badgeY + badgeH + 44);
+    ctx.globalAlpha = 1;
+  });
+
+  // ---- Highlighted note box ----
+  const boxTop = cardsTop + cardH + 50;
+  const boxH = 160;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('ALL 3 SIZES INCLUDED IN COLOR + GREYSCALE', SIZE / 2, boxTop + 66);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.65;
+  ctx.font = `500 28px "${brand.font}"`;
+  ctx.fillText('Choose your preferred layout • print only what you need', SIZE / 2, boxTop + 114);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
+}
+
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -1931,6 +2105,12 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawIncludedShowcase(ctx, brand, product, checklistImages, watermarkFor('showcase')),
     },
     {
+      label: 'Choose Your Size',
+      key: 'sizes',
+      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      fn: (ctx) => drawSizeGuide(ctx, brand, product, checklistImages, watermarkFor('sizes')),
+    },
+    {
       label: 'Laptop Mockup',
       key: 'laptop',
       include: true,
@@ -1968,11 +2148,12 @@ els.form.addEventListener('submit', async e => {
     name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
   }));
 
-  // Laptop/phone/custom mockups, the Hero Cover, and the Everything Included
-  // showcase all draw their own watermark internally, clipped to their
-  // screen/display/image areas — applying it again here would double it up
-  // across the whole canvas. The multi-page grid has no such area, so it
-  // gets the full-canvas treatment like the other flat graphics.
+  // Laptop/phone/custom mockups, the Hero Cover, the Everything Included
+  // showcase, and the Choose Your Size guide all draw their own watermark
+  // internally, clipped to their screen/display/image areas — applying it
+  // again here would double it up across the whole canvas. The multi-page
+  // grid has no such area, so it gets the full-canvas treatment like the
+  // other flat graphics.
   const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'badges', 'pages']);
 
   templates.forEach(t => {
