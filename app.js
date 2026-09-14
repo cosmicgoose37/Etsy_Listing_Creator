@@ -164,7 +164,7 @@ function defaultProfile(name) {
     watermarkText: '',
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
-    watermarkOpacity: 18,
+    watermarkOpacity: 30,
     watermarkTargets: ['hero', 'showcase', 'sizes', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
@@ -241,7 +241,7 @@ function applyProfileToForm(p) {
   els.watermarkStyle.value = p.watermarkStyle || 'tiled';
   els.watermarkColor.value = p.watermarkColor || '#ffffff';
   els.watermarkColorHex.value = els.watermarkColor.value.toUpperCase();
-  els.watermarkOpacity.value = p.watermarkOpacity != null ? p.watermarkOpacity : 18;
+  els.watermarkOpacity.value = p.watermarkOpacity != null ? p.watermarkOpacity : 30;
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
   const targets = new Set(p.watermarkTargets || ['hero', 'laptop', 'phone']);
   els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -1367,9 +1367,9 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 // card labels/descriptions/badges, and the highlight box never change);
 // only the 3 layout-preview images differ, one per card size.
 const SIZE_GUIDE_CARDS = [
-  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', badge: 'ACTUAL PRODUCT PREVIEW', caption: '9 cards/page' },
-  { key: 'size16', n: '16', label: 'COMPACT', desc: 'Smaller layout • saves paper', badge: 'LAYOUT MOCKUP', caption: '16 cards/page' },
-  { key: 'size25', n: '25', label: 'MINI', desc: 'Most compact • maximum efficiency', badge: 'ACTUAL PRODUCT PREVIEW', caption: '25 cards/page' },
+  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', caption: '9 cards/page' },
+  { key: 'size16', n: '16', label: 'COMPACT', desc: 'Smaller layout • saves paper', caption: '16 cards/page' },
+  { key: 'size25', n: '25', label: 'MINI', desc: 'Most compact • maximum efficiency', caption: '25 cards/page' },
 ];
 
 function drawSizeGuide(ctx, brand, product, images, watermark) {
@@ -1412,7 +1412,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   const cardsTop = 560;
   const cardGap = 40;
   const cardW = (contentW - cardGap * 2) / 3;
-  const cardH = 1080;
+  const cardH = 1000;
   const pad = 28;
 
   SIZE_GUIDE_CARDS.forEach((opt, i) => {
@@ -1460,24 +1460,11 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     roundRect(ctx, imgX, imgY, imgW, imgH, 12);
     ctx.stroke();
 
-    const badgeY = imgY + imgH + 36;
-    ctx.font = `700 20px "${brand.font}"`;
-    const badgeW = ctx.measureText(opt.badge).width + 40;
-    const badgeH = 46;
-    const badgeX = cx - badgeW / 2;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.12;
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.textAlign = 'center';
-    ctx.fillText(opt.badge, cx, badgeY + badgeH / 2 + 7);
-
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.65;
     ctx.font = `500 28px "${brand.font}"`;
-    ctx.fillText(opt.caption, cx, badgeY + badgeH + 44);
+    ctx.textAlign = 'center';
+    ctx.fillText(opt.caption, cx, imgY + imgH + 60);
     ctx.globalAlpha = 1;
   });
 
