@@ -1015,6 +1015,172 @@ function drawHero(ctx, brand, product, images, logoImg) {
   ctx.fillText(brand.companyName, 90, SIZE - 60);
 }
 
+// Splits a "What's Included" line like "3 Placeholder Sizes — 9, 16, 25 per
+// page" into a bold label + smaller subtext, for the checklist hero's
+// feature boxes. Lines without a dash just render as a single label line.
+function splitFeatureLine(text) {
+  const parts = text.split(/\s+[—-]\s+/);
+  if (parts.length >= 2) return { label: parts[0], sub: parts.slice(1).join(' - ') };
+  return { label: text, sub: '' };
+}
+
+function drawImageCard(ctx, x, y, w, h, img, caption, brand) {
+  ctx.save();
+  ctx.shadowColor = 'rgba(0,0,0,0.14)';
+  ctx.shadowBlur = 22;
+  ctx.shadowOffsetY = 8;
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.clip();
+  if (img) {
+    drawCover(ctx, x, y, w, h, img);
+  } else {
+    ctx.fillStyle = brand.accentColor;
+    ctx.fillRect(x, y, w, h);
+  }
+  const barH = 66;
+  ctx.fillStyle = 'rgba(255,255,255,0.94)';
+  ctx.fillRect(x, y, w, barH);
+  ctx.fillStyle = '#221c17';
+  ctx.font = `700 28px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(caption.toUpperCase(), x + 22, y + barH / 2 + 10);
+  ctx.restore();
+}
+
+function drawInstructionBox(ctx, x, y, w, h, brand, product) {
+  ctx.fillStyle = '#ffffff';
+  roundRect(ctx, x, y, w, h, 16);
+  ctx.fill();
+
+  const pad = 30;
+  let ly = y + pad + 30;
+  ctx.textAlign = 'left';
+
+  ctx.fillStyle = '#221c17';
+  ctx.font = `700 32px "${brand.font}"`;
+  ly = wrapText(ctx, 'Print • Cut • Use', x + pad, ly, w - pad * 2, 38, 'left') + 6;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `600 26px "${brand.font}"`;
+  ctx.fillText('Instant Download → Unzip', x + pad, ly);
+  ly += 42;
+
+  const lines = product.howItWorks.length
+    ? product.howItWorks.slice(0, 2)
+    : ['Pick your size + style', 'Print or use digitally'];
+  ctx.fillStyle = '#7a6f66';
+  ctx.font = `400 25px "${brand.font}"`;
+  lines.forEach(line => {
+    ly = wrapText(ctx, line, x + pad, ly, w - pad * 2, 32, 'left') + 2;
+  });
+}
+
+function drawChecklistHero(ctx, brand, product, images) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const margin = 90;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 34px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 110);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.35;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 132);
+  ctx.lineTo(SIZE - margin, 132);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- Headline ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 96px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  let y = wrapText(ctx, product.name, margin, 240, contentW, 100, 'left');
+
+  if (product.tagline) {
+    ctx.font = `500 40px "${brand.font}"`;
+    ctx.globalAlpha = 0.75;
+    y = wrapText(ctx, product.tagline, margin, y + 2, contentW, 46, 'left');
+    ctx.globalAlpha = 1;
+  }
+
+  // ---- Feature row (from the first 3 "What's Included" lines) ----
+  const featureTop = 530;
+  const featureH = 150;
+  const fGap = 28;
+  const boxW = (contentW - fGap * 2) / 3;
+  const features = (product.bullets.length ? product.bullets : ['Instant Download', 'High Quality', 'Easy to Use']).slice(0, 3);
+
+  features.forEach((raw, i) => {
+    const { label, sub } = splitFeatureLine(raw);
+    const x = margin + i * (boxW + fGap);
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, x, featureTop, boxW, featureH, 14);
+    ctx.fill();
+    const pad = 26;
+    ctx.fillStyle = '#221c17';
+    ctx.font = `700 30px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    let ly = wrapText(ctx, label.toUpperCase(), x + pad, featureTop + 52, boxW - pad * 2, 34, 'left');
+    if (sub) {
+      ctx.font = `400 23px "${brand.font}"`;
+      ctx.fillStyle = '#8a8078';
+      wrapText(ctx, sub, x + pad, ly + 4, boxW - pad * 2, 28, 'left');
+    }
+  });
+
+  // ---- Image grid ----
+  const gridTop = featureTop + featureH + 40;
+  const row1H = 730, row2H = 380, gGap = 26;
+  const colW = (contentW - gGap) / 2;
+  const captions = ['Fillable Checklist', 'Color Placeholders', 'Greyscale Placeholders'];
+  const row2Y = gridTop + row1H + gGap;
+
+  drawImageCard(ctx, margin, gridTop, colW, row1H, images[0] ? images[0].img : null, captions[0], brand);
+  drawImageCard(ctx, margin + colW + gGap, gridTop, colW, row1H, images[1] ? images[1].img : null, captions[1], brand);
+
+  if (images[2]) {
+    drawImageCard(ctx, margin, row2Y, colW, row2H, images[2].img, captions[2], brand);
+    drawInstructionBox(ctx, margin + colW + gGap, row2Y, colW, row2H, brand, product);
+  } else {
+    drawInstructionBox(ctx, margin, row2Y, contentW, row2H, brand, product);
+  }
+
+  // ---- Footer ----
+  const footerY = SIZE - 120;
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, footerY);
+  ctx.lineTo(SIZE - margin, footerY);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, footerY + 56);
+
+  const badgeText = (product.badges[0] || 'Digital Download').toUpperCase();
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.fillStyle = textColor;
+  ctx.textAlign = 'right';
+  ctx.fillText(badgeText, SIZE - margin, footerY + 56);
+}
+
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -1582,7 +1748,16 @@ els.form.addEventListener('submit', async e => {
   // for them (a custom mockup photo, or enough pages for a preview grid) —
   // numbering below is assigned after filtering, so the sequence stays clean.
   const candidates = [
-    { label: 'Hero Cover', key: 'hero', include: true, fn: (ctx) => drawHero(ctx, brand, product, uploadedImages, logoImg) },
+    {
+      label: 'Hero Cover',
+      key: 'hero',
+      include: true,
+      // The checklist collage layout needs real preview images to fill its
+      // grid — fall back to the standard hero until at least 2 are uploaded.
+      fn: (ctx) => (product.type === 'checklist' && uploadedImages.length >= 2)
+        ? drawChecklistHero(ctx, brand, product, uploadedImages)
+        : drawHero(ctx, brand, product, uploadedImages, logoImg),
+    },
     {
       label: 'Laptop Mockup',
       key: 'laptop',
