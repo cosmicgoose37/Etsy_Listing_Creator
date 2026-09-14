@@ -55,6 +55,8 @@ const els = {
   companyName: document.getElementById('companyName'),
   logoUpload: document.getElementById('logoUpload'),
   logoPreview: document.getElementById('logoPreview'),
+  logoPaletteSection: document.getElementById('logoPaletteSection'),
+  logoPaletteRow: document.getElementById('logoPaletteRow'),
   primaryColor: document.getElementById('primaryColor'),
   primaryColorHex: document.getElementById('primaryColorHex'),
   accentColor: document.getElementById('accentColor'),
@@ -220,6 +222,10 @@ function applyProfileToForm(p) {
     delete els.logoPreview.dataset.logo;
     els.logoPreview.innerHTML = '';
   }
+  // The palette picker only applies to the upload that produced it — hide it
+  // on profile switch rather than show stale options for a different logo.
+  els.logoPaletteSection.hidden = true;
+  els.logoPaletteRow.innerHTML = '';
 
   els.watermarkEnabled.checked = !!p.watermarkEnabled;
   els.watermarkOptions.hidden = !p.watermarkEnabled;
@@ -518,6 +524,33 @@ function renderLogoPreview(dataUrl) {
   els.logoPreview.innerHTML = `<img src="${dataUrl}" alt="logo preview" />`;
 }
 
+function renderLogoPaletteOptions(options) {
+  els.logoPaletteRow.innerHTML = '';
+  if (!options.length) {
+    els.logoPaletteSection.hidden = true;
+    return;
+  }
+  options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'logo-palette-option';
+    btn.title = `Primary ${opt.primary.toUpperCase()} / Accent ${opt.accent.toUpperCase()}`;
+    btn.innerHTML = `<span style="background:${opt.primary}"></span><span style="background:${opt.accent}"></span>`;
+    btn.addEventListener('click', () => {
+      els.logoPaletteRow.querySelectorAll('.logo-palette-option').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      els.primaryColor.value = opt.primary;
+      els.primaryColorHex.value = opt.primary.toUpperCase();
+      els.accentColor.value = opt.accent;
+      els.accentColorHex.value = opt.accent.toUpperCase();
+      persistFormToActiveProfile();
+      setStatus('Colors updated from logo palette.');
+    });
+    els.logoPaletteRow.appendChild(btn);
+  });
+  els.logoPaletteSection.hidden = false;
+}
+
 els.logoUpload.addEventListener('change', () => {
   const file = els.logoUpload.files[0];
   if (!file) return;
@@ -525,18 +558,11 @@ els.logoUpload.addEventListener('change', () => {
   reader.onload = () => {
     els.logoPreview.dataset.logo = reader.result;
     renderLogoPreview(reader.result);
+    persistFormToActiveProfile();
 
     const img = new Image();
     img.onload = () => {
-      const palette = extractPaletteFromImage(img);
-      if (palette) {
-        els.primaryColor.value = palette.primary;
-        els.primaryColorHex.value = palette.primary.toUpperCase();
-        els.accentColor.value = palette.accent;
-        els.accentColorHex.value = palette.accent.toUpperCase();
-        setStatus('Primary/accent colors set from logo.');
-      }
-      persistFormToActiveProfile();
+      renderLogoPaletteOptions(extractPaletteOptionsFromImage(img, 5));
     };
     img.src = reader.result;
   };
@@ -699,11 +725,18 @@ function colorSaturation(r, g, b) {
   return max === 0 ? 0 : (max - min) / max;
 }
 
-// Picks a bold primary color and a pale accent tint from an uploaded logo:
-// primary favors common, saturated ("brand-colored") pixels; accent prefers
-// an actual light tone already present in the logo, falling back to a soft
-// tint of the primary color if the logo has no light pixels to draw from.
-function extractPaletteFromImage(img) {
+function colorDistance(a, b) {
+  return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2);
+}
+
+function lightenColor(c, amount) {
+  return { r: c.r + (255 - c.r) * amount, g: c.g + (255 - c.g) * amount, b: c.b + (255 - c.b) * amount };
+}
+
+// Builds a histogram of an uploaded logo's pixels, skipping transparent,
+// near-white, and near-black ones, sorted with the most common + saturated
+// ("brand-colored") pixels first.
+function buildColorHistogram(img) {
   const size = 120;
   const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight, 1);
   const w = Math.max(1, Math.round(img.naturalWidth * scale));
@@ -718,7 +751,7 @@ function extractPaletteFromImage(img) {
   try {
     data = ctx.getImageData(0, 0, w, h).data;
   } catch (e) {
-    return null; // tainted canvas or unreadable image — skip extraction
+    return []; // tainted canvas or unreadable image — skip extraction
   }
 
   const buckets = new Map();
@@ -735,24 +768,40 @@ function extractPaletteFromImage(img) {
   }
 
   const candidates = [...buckets.values()];
-  if (!candidates.length) return null;
-
   candidates.forEach(c => { c.sat = colorSaturation(c.r, c.g, c.b); });
   candidates.sort((a, b) => (b.count * (0.4 + b.sat)) - (a.count * (0.4 + a.sat)));
-  const primary = candidates[0];
+  return candidates;
+}
 
-  const lightCandidates = candidates
-    .filter(c => (Math.max(c.r, c.g, c.b) + Math.min(c.r, c.g, c.b)) / 2 / 255 > 0.75)
-    .sort((a, b) => b.count - a.count);
+// Returns up to `count` distinct (primary, accent) color-pair options
+// extracted from a logo, for the user to choose between. Accent is always a
+// pale tint of that option's own primary, so every option is guaranteed to
+// be usable as a background regardless of what's actually in the logo. If
+// the logo doesn't have `count` sufficiently distinct colors, the list is
+// padded with progressively lighter variants of the top color.
+function extractPaletteOptionsFromImage(img, count) {
+  count = count || 5;
+  const candidates = buildColorHistogram(img);
+  if (!candidates.length) return [];
 
-  const accent = lightCandidates.length
-    ? lightCandidates[0]
-    : { r: primary.r + (255 - primary.r) * 0.88, g: primary.g + (255 - primary.g) * 0.88, b: primary.b + (255 - primary.b) * 0.88 };
+  const picked = [];
+  for (const c of candidates) {
+    if (picked.every(p => colorDistance(p, c) > 40)) picked.push(c);
+    if (picked.length >= count) break;
+  }
+  let pad = 1;
+  while (picked.length < count && picked.length > 0) {
+    picked.push(lightenColor(picked[0], Math.min(0.18 * pad, 0.85)));
+    pad++;
+  }
 
-  return {
-    primary: rgbToHex(primary.r, primary.g, primary.b),
-    accent: rgbToHex(accent.r, accent.g, accent.b),
-  };
+  return picked.slice(0, count).map(c => {
+    const accent = lightenColor(c, 0.88);
+    return {
+      primary: rgbToHex(c.r, c.g, c.b),
+      accent: rgbToHex(accent.r, accent.g, accent.b),
+    };
+  });
 }
 
 async function ensureFont(family) {
