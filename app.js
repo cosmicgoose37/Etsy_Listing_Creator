@@ -84,12 +84,6 @@ const els = {
   checklistImgSize25: document.getElementById('checklistImgSize25'),
   checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
   checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
-  checklistImgPrintColor: document.getElementById('checklistImgPrintColor'),
-  checklistImgPrintColorPreview: document.getElementById('checklistImgPrintColorPreview'),
-  checklistImgPrintColorStatus: document.getElementById('checklistImgPrintColorStatus'),
-  checklistImgPrintGrey: document.getElementById('checklistImgPrintGrey'),
-  checklistImgPrintGreyPreview: document.getElementById('checklistImgPrintGreyPreview'),
-  checklistImgPrintGreyStatus: document.getElementById('checklistImgPrintGreyStatus'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -350,7 +344,7 @@ function syncGradeSubjectVisibility() {
 // Kept separate from the generic multi-image uploader so there's no
 // ambiguity about which photo it is.
 // =========================================================================
-const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null, printColor: null, printGrey: null };
+const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
@@ -380,8 +374,6 @@ bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.
 bindChecklistImageUpload(els.checklistImgSize9, els.checklistImgSize9Preview, els.checklistImgSize9Status, 'size9');
 bindChecklistImageUpload(els.checklistImgSize16, els.checklistImgSize16Preview, els.checklistImgSize16Status, 'size16');
 bindChecklistImageUpload(els.checklistImgSize25, els.checklistImgSize25Preview, els.checklistImgSize25Status, 'size25');
-bindChecklistImageUpload(els.checklistImgPrintColor, els.checklistImgPrintColorPreview, els.checklistImgPrintColorStatus, 'printColor');
-bindChecklistImageUpload(els.checklistImgPrintGrey, els.checklistImgPrintGreyPreview, els.checklistImgPrintGreyStatus, 'printGrey');
 
 function missingChecklistImageLabels() {
   const missing = [];
@@ -391,8 +383,6 @@ function missingChecklistImageLabels() {
   if (!checklistImages.size9) missing.push('9 Cards/Page Layout Preview');
   if (!checklistImages.size16) missing.push('16 Cards/Page Layout Preview');
   if (!checklistImages.size25) missing.push('25 Cards/Page Layout Preview');
-  if (!checklistImages.printColor) missing.push('Color Print Style Preview');
-  if (!checklistImages.printGrey) missing.push('Greyscale Print Style Preview');
   return missing;
 }
 
@@ -1151,8 +1141,8 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 // subtitle, card labels/descriptions/badges/notes, and the highlight box
 // never change); only the 2 preview images differ, one per print style.
 const PRINT_STYLE_CARDS = [
-  { key: 'printColor', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
-  { key: 'printGrey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Cleaner, lower-ink printing option', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'color', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Cleaner, lower-ink printing option', note: 'Available in 9 • 16 • 25 cards/page' },
 ];
 
 function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
