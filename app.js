@@ -84,6 +84,12 @@ const els = {
   checklistImgSize25: document.getElementById('checklistImgSize25'),
   checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
   checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
+  checklistImgPrintColor: document.getElementById('checklistImgPrintColor'),
+  checklistImgPrintColorPreview: document.getElementById('checklistImgPrintColorPreview'),
+  checklistImgPrintColorStatus: document.getElementById('checklistImgPrintColorStatus'),
+  checklistImgPrintGrey: document.getElementById('checklistImgPrintGrey'),
+  checklistImgPrintGreyPreview: document.getElementById('checklistImgPrintGreyPreview'),
+  checklistImgPrintGreyStatus: document.getElementById('checklistImgPrintGreyStatus'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -165,7 +171,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
-    watermarkTargets: ['hero', 'showcase', 'sizes', 'laptop', 'phone', 'custom', 'pages'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
 
@@ -349,7 +355,7 @@ function syncGradeSubjectVisibility() {
 // Kept separate from the generic multi-image uploader so there's no
 // ambiguity about which photo it is.
 // =========================================================================
-const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null };
+const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null, printColor: null, printGrey: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
@@ -379,6 +385,8 @@ bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.
 bindChecklistImageUpload(els.checklistImgSize9, els.checklistImgSize9Preview, els.checklistImgSize9Status, 'size9');
 bindChecklistImageUpload(els.checklistImgSize16, els.checklistImgSize16Preview, els.checklistImgSize16Status, 'size16');
 bindChecklistImageUpload(els.checklistImgSize25, els.checklistImgSize25Preview, els.checklistImgSize25Status, 'size25');
+bindChecklistImageUpload(els.checklistImgPrintColor, els.checklistImgPrintColorPreview, els.checklistImgPrintColorStatus, 'printColor');
+bindChecklistImageUpload(els.checklistImgPrintGrey, els.checklistImgPrintGreyPreview, els.checklistImgPrintGreyStatus, 'printGrey');
 
 function missingChecklistImageLabels() {
   const missing = [];
@@ -388,6 +396,8 @@ function missingChecklistImageLabels() {
   if (!checklistImages.size9) missing.push('9 Cards/Page Layout Preview');
   if (!checklistImages.size16) missing.push('16 Cards/Page Layout Preview');
   if (!checklistImages.size25) missing.push('25 Cards/Page Layout Preview');
+  if (!checklistImages.printColor) missing.push('Color Print Style Preview');
+  if (!checklistImages.printGrey) missing.push('Greyscale Print Style Preview');
   return missing;
 }
 
@@ -1509,6 +1519,162 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
+// "Choose Your Print Style" guide — layout is fixed on purpose (title,
+// subtitle, card labels/descriptions/badges/notes, and the highlight box
+// never change); only the 2 preview images differ, one per print style.
+const PRINT_STYLE_CARDS = [
+  { key: 'printColor', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'printGrey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Cleaner, lower-ink printing option', note: 'Available in 9 • 16 • 25 cards/page' },
+];
+
+function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed, single line) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Choose Your Print Style', margin, 250);
+
+  // ---- Subtitle (fixed) ----
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'Both versions are included — print whichever works best for your binder.', margin, 330, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Two print-style cards ----
+  const cardsTop = 460;
+  const cardGap = 50;
+  const cardW = (contentW - cardGap) / 2;
+  const cardH = 1000;
+  const pad = 36;
+
+  PRINT_STYLE_CARDS.forEach((c, i) => {
+    const cardX = margin + i * (cardW + cardGap);
+    const cx = cardX + cardW / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 44px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(c.title, cx, cardsTop + 70);
+
+    ctx.fillStyle = '#6b6259';
+    ctx.font = `500 26px "${brand.font}"`;
+    ctx.fillText(c.subtitle, cx, cardsTop + 112);
+
+    const imgX = cardX + pad, imgY = cardsTop + 155, imgW = cardW - pad * 2, imgH = 610;
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
+    ctx.clip();
+    const img = images[c.key];
+    if (img) {
+      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+    } else {
+      ctx.fillStyle = '#f1ece4';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+    if (watermark) {
+      drawWatermark(ctx, watermark.text, watermark, { x: imgX, y: imgY, w: imgW, h: imgH });
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
+    ctx.stroke();
+
+    const badgeY = imgY + imgH + 40;
+    ctx.font = `700 22px "${brand.font}"`;
+    const badgeW = ctx.measureText(c.badge).width + 44;
+    const badgeH = 54;
+    const badgeX = cx - badgeW / 2;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.12;
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(c.badge, cx, badgeY + badgeH / 2 + 8);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `600 32px "${brand.font}"`;
+    ctx.fillText(c.caption, cx, badgeY + badgeH + 46);
+
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.6;
+    ctx.font = `500 24px "${brand.font}"`;
+    ctx.fillText(c.note, cx, badgeY + badgeH + 84);
+    ctx.globalAlpha = 1;
+  });
+
+  // ---- Highlighted note box ----
+  const boxTop = cardsTop + cardH + 50;
+  const boxH = 160;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 66);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.65;
+  ctx.font = `500 28px "${brand.font}"`;
+  ctx.fillText('No need to choose before purchase', SIZE / 2, boxTop + 114);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+
+  ctx.fillStyle = '#1f1b17';
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
+}
+
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -2098,6 +2264,12 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawSizeGuide(ctx, brand, product, checklistImages, watermarkFor('sizes')),
     },
     {
+      label: 'Print Style',
+      key: 'printstyle',
+      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
+    },
+    {
       label: 'Laptop Mockup',
       key: 'laptop',
       include: true,
@@ -2136,11 +2308,11 @@ els.form.addEventListener('submit', async e => {
   }));
 
   // Laptop/phone/custom mockups, the Hero Cover, the Everything Included
-  // showcase, and the Choose Your Size guide all draw their own watermark
-  // internally, clipped to their screen/display/image areas — applying it
-  // again here would double it up across the whole canvas. The multi-page
-  // grid has no such area, so it gets the full-canvas treatment like the
-  // other flat graphics.
+  // showcase, the Choose Your Size guide, and the Print Style guide all draw
+  // their own watermark internally, clipped to their screen/display/image
+  // areas — applying it again here would double it up across the whole
+  // canvas. The multi-page grid has no such area, so it gets the
+  // full-canvas treatment like the other flat graphics.
   const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'badges', 'pages']);
 
   templates.forEach(t => {
