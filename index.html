@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789424248" />
+<link rel="stylesheet" href="style.css?v=1789424769" />
 </head>
 <body>
 <header class="topbar">
@@ -142,13 +142,23 @@ Enjoy!"></textarea>
       </section>
 
       <section class="field-group" id="checklistImagesSection" hidden>
-        <h2>Hero Image <span class="hint">required for this product type</span></h2>
-        <p class="hint">This image builds the Hero Cover automatically, alongside your product name, tagline, and What's Included.</p>
+        <h2>Preview Images <span class="hint">required for this product type</span></h2>
+        <p class="hint">These build the Hero Cover and the "Everything Included" showcase image automatically, alongside your product name and shop name.</p>
+
+        <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
+          <input type="file" accept="image/*" id="checklistImgChecklist" />
+        </label>
+        <div class="logo-preview" id="checklistImgChecklistPreview"></div>
 
         <label>Color Placeholders Preview <span class="hint" id="checklistImgColorStatus">— required</span>
           <input type="file" accept="image/*" id="checklistImgColor" />
         </label>
         <div class="logo-preview" id="checklistImgColorPreview"></div>
+
+        <label>Greyscale Placeholders Preview <span class="hint" id="checklistImgGreyStatus">— required</span>
+          <input type="file" accept="image/*" id="checklistImgGrey" />
+        </label>
+        <div class="logo-preview" id="checklistImgGreyPreview"></div>
       </section>
 
       <section class="field-group">
@@ -239,6 +249,7 @@ Enjoy!"></textarea>
           <label>Apply to <span class="hint">(images showing your actual artwork, by default)</span></label>
           <div class="badge-options" id="watermarkTargets">
             <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
+            <label class="chip"><input type="checkbox" value="showcase" checked> Everything Included</label>
             <label class="chip"><input type="checkbox" value="laptop" checked> Laptop Mockup</label>
             <label class="chip"><input type="checkbox" value="phone" checked> Phone Mockup</label>
             <label class="chip"><input type="checkbox" value="custom" checked> Custom Mockup</label>
@@ -276,6 +287,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789424248"></script>
+<script src="app.js?v=1789424769"></script>
 </body>
 </html>

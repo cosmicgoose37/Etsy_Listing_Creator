@@ -65,9 +65,15 @@ const els = {
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
   checklistImagesSection: document.getElementById('checklistImagesSection'),
+  checklistImgChecklist: document.getElementById('checklistImgChecklist'),
+  checklistImgChecklistPreview: document.getElementById('checklistImgChecklistPreview'),
+  checklistImgChecklistStatus: document.getElementById('checklistImgChecklistStatus'),
   checklistImgColor: document.getElementById('checklistImgColor'),
   checklistImgColorPreview: document.getElementById('checklistImgColorPreview'),
   checklistImgColorStatus: document.getElementById('checklistImgColorStatus'),
+  checklistImgGrey: document.getElementById('checklistImgGrey'),
+  checklistImgGreyPreview: document.getElementById('checklistImgGreyPreview'),
+  checklistImgGreyStatus: document.getElementById('checklistImgGreyStatus'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -148,7 +154,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 18,
-    watermarkTargets: ['hero', 'laptop', 'phone', 'custom', 'pages'],
+    watermarkTargets: ['hero', 'showcase', 'laptop', 'phone', 'custom', 'pages'],
   };
 }
 
@@ -323,30 +329,40 @@ function syncGradeSubjectVisibility() {
 // Kept separate from the generic multi-image uploader so there's no
 // ambiguity about which photo it is.
 // =========================================================================
-const checklistImages = { color: null };
+const checklistImages = { checklist: null, color: null, grey: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
 }
 
-els.checklistImgColor.addEventListener('change', () => {
-  const file = els.checklistImgColor.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    const img = new Image();
-    img.onload = () => {
-      checklistImages.color = img;
-      els.checklistImgColorPreview.innerHTML = `<img src="${reader.result}" alt="" />`;
-      els.checklistImgColorStatus.textContent = '— uploaded';
+function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
+  inputEl.addEventListener('change', () => {
+    const file = inputEl.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        checklistImages[key] = img;
+        previewEl.innerHTML = `<img src="${reader.result}" alt="" />`;
+        statusEl.textContent = '— uploaded';
+      };
+      img.src = reader.result;
     };
-    img.src = reader.result;
-  };
-  reader.readAsDataURL(file);
-});
+    reader.readAsDataURL(file);
+  });
+}
+
+bindChecklistImageUpload(els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus, 'checklist');
+bindChecklistImageUpload(els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus, 'color');
+bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.checklistImgGreyStatus, 'grey');
 
 function missingChecklistImageLabels() {
-  return checklistImages.color ? [] : ['Color Placeholders Preview'];
+  const missing = [];
+  if (!checklistImages.checklist) missing.push('Checklist Screenshot');
+  if (!checklistImages.color) missing.push('Color Placeholders Preview');
+  if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
+  return missing;
 }
 
 // Some badges don't make sense for certain product types (e.g. a checklist
@@ -1101,6 +1117,226 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
   ctx.stroke();
 }
 
+// "Everything Included" showcase — layout is fixed on purpose (title, badge,
+// card labels, size options, and steps never change); only the subtitle
+// reflects the product name, since this image always describes the same
+// Checklist + Placeholders deliverables.
+const SHOWCASE_SIZE_OPTIONS = [
+  { n: '9', label: 'cards/page', desc: 'regular card size' },
+  { n: '16', label: 'cards/page', desc: 'smaller layout' },
+  { n: '25', label: 'cards/page', desc: 'most compact' },
+];
+const SHOWCASE_STEPS = [
+  'Unzip your instant download',
+  'Pick color or greyscale',
+  'Choose 9, 16 or 25 cards/page',
+  'Print, cut & place in your binder',
+];
+const SHOWCASE_CARDS = [
+  { key: 'checklist', title: 'Fillable Checklist', desc: 'Use digitally or print it' },
+  { key: 'color', title: 'Color Placeholders', desc: 'Included in all 3 sizes' },
+  { key: 'grey', title: 'Greyscale Placeholders', desc: 'Ink-friendly option' },
+];
+
+function drawIncludedShowcase(ctx, brand, product, images, watermark) {
+  ctx.fillStyle = brand.accentColor;
+  ctx.fillRect(0, 0, SIZE, SIZE);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 32px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- "Digital Download" badge, top right ----
+  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 40px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  wrapText(ctx, 'DIGITAL DOWNLOAD', badgeX + 36, badgeY + 66, badgeW - 72, 46, 'left');
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.75;
+  ctx.font = `500 30px "${brand.font}"`;
+  ctx.fillText('Instant access', badgeX + 36, badgeY + 136);
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Everything Included', margin, 250);
+  ctx.fillText('in Your Download', margin, 340);
+
+  // ---- Subtitle — the one editable piece, built from the product name ----
+  ctx.font = `500 38px "${brand.font}"`;
+  ctx.globalAlpha = 0.7;
+  const subtitle = `A complete ${product.name} toolkit for planning and tracking your binder.`;
+  const subtitleBottom = wrapText(ctx, subtitle, margin, 416, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Three preview cards ----
+  const cardsTop = Math.max(560, subtitleBottom + 40);
+  const cardGap = 40;
+  const cardW = (contentW - cardGap * 2) / 3;
+  const cardH = 640;
+  const pad = 28;
+  const imgH = cardH * 0.72;
+
+  SHOWCASE_CARDS.forEach((card, i) => {
+    const cardX = margin + i * (cardW + cardGap);
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 20);
+    ctx.stroke();
+
+    const imgX = cardX + pad, imgY = cardsTop + pad, imgW = cardW - pad * 2;
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 12);
+    ctx.clip();
+    const img = images[card.key];
+    if (img) {
+      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+    } else {
+      ctx.fillStyle = '#f1ece4';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+    if (watermark) {
+      drawWatermark(ctx, watermark.text, watermark, { x: imgX, y: imgY, w: imgW, h: imgH });
+    }
+    ctx.restore();
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 42px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    const titleY = imgY + imgH + 56;
+    ctx.fillText(card.title, imgX, titleY);
+
+    ctx.fillStyle = '#6b6259';
+    ctx.font = `500 28px "${brand.font}"`;
+    ctx.fillText(card.desc, imgX, titleY + 40);
+  });
+
+  // ---- Bottom info box: sizes + how-to-use, side by side ----
+  const boxTop = cardsTop + cardH + 50;
+  const boxH = 480;
+  const boxBottom = boxTop + boxH;
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 2;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const midX = margin + contentW / 2;
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.beginPath();
+  ctx.moveTo(midX, boxTop + 50);
+  ctx.lineTo(midX, boxBottom - 50);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  const colPad = 60;
+
+  // Left column — placeholder sizes
+  const leftX = margin + colPad;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 34px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('3 PLACEHOLDER SIZES', leftX, boxTop + 84);
+
+  const leftColW = contentW / 2 - colPad - 40;
+  const circleR = 68;
+  const circleGap = (leftColW - circleR * 2 * SHOWCASE_SIZE_OPTIONS.length) / (SHOWCASE_SIZE_OPTIONS.length - 1) + circleR * 2;
+  const circleCy = boxTop + 84 + 150;
+  SHOWCASE_SIZE_OPTIONS.forEach((opt, i) => {
+    const cx = leftX + circleR + i * circleGap;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.14;
+    ctx.beginPath();
+    ctx.arc(cx, circleCy, circleR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    ctx.fillStyle = brand.primaryColor;
+    ctx.font = `700 56px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(opt.n, cx, circleCy + 20);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `700 28px "${brand.font}"`;
+    ctx.fillText(opt.label, cx, circleCy + circleR + 46);
+
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.6;
+    ctx.font = `500 24px "${brand.font}"`;
+    ctx.fillText(opt.desc, cx, circleCy + circleR + 78);
+    ctx.globalAlpha = 1;
+  });
+
+  // Right column — how to use it
+  const rightX = midX + colPad;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 34px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('HOW TO USE IT', rightX, boxTop + 84);
+
+  const stepR = 30;
+  const stepTextX = rightX + stepR * 2 + 24;
+  const stepTextMaxW = margin + contentW - stepTextX - colPad + 40;
+  const stepsTop = boxTop + 84 + 60;
+  const stepGap = (boxH - 84 - 60 - 30) / SHOWCASE_STEPS.length;
+  SHOWCASE_STEPS.forEach((step, i) => {
+    const cy = stepsTop + i * stepGap + stepR;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.beginPath();
+    ctx.arc(rightX + stepR, cy, stepR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = contrastText(brand.primaryColor);
+    ctx.font = `700 30px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(String(i + 1), rightX + stepR, cy + 11);
+
+    ctx.fillStyle = textColor;
+    ctx.font = `600 32px "${brand.font}"`;
+    ctx.textAlign = 'left';
+    ctx.fillText(step, stepTextX, cy + 11, stepTextMaxW);
+  });
+
+  // ---- Footer ----
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.55;
+  ctx.font = `500 28px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('Digital product only • No physical item will be shipped', margin, SIZE - 55);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText(brand.companyName.toUpperCase(), SIZE - margin, SIZE - 55);
+}
+
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
@@ -1678,6 +1914,12 @@ els.form.addEventListener('submit', async e => {
         : drawHero(ctx, brand, product, uploadedImages, logoImg),
     },
     {
+      label: 'Everything Included',
+      key: 'showcase',
+      include: product.type === 'checklist' && missingChecklistImageLabels().length === 0,
+      fn: (ctx) => drawIncludedShowcase(ctx, brand, product, checklistImages, watermarkFor('showcase')),
+    },
+    {
       label: 'Laptop Mockup',
       key: 'laptop',
       include: true,
@@ -1715,11 +1957,11 @@ els.form.addEventListener('submit', async e => {
     name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
   }));
 
-  // Laptop/phone/custom mockups and the Hero Cover draw their own watermark
-  // internally, clipped to the screen/display/image area — applying it again
-  // here would double it up across the whole canvas. The multi-page grid has
-  // no such area, so it gets the full-canvas treatment like the other flat
-  // graphics.
+  // Laptop/phone/custom mockups, the Hero Cover, and the Everything Included
+  // showcase all draw their own watermark internally, clipped to their
+  // screen/display/image areas — applying it again here would double it up
+  // across the whole canvas. The multi-page grid has no such area, so it
+  // gets the full-canvas treatment like the other flat graphics.
   const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'badges', 'pages']);
 
   templates.forEach(t => {
