@@ -61,15 +61,9 @@ const els = {
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
   checklistImagesSection: document.getElementById('checklistImagesSection'),
-  checklistImgChecklist: document.getElementById('checklistImgChecklist'),
   checklistImgColor: document.getElementById('checklistImgColor'),
-  checklistImgGrey: document.getElementById('checklistImgGrey'),
-  checklistImgChecklistPreview: document.getElementById('checklistImgChecklistPreview'),
   checklistImgColorPreview: document.getElementById('checklistImgColorPreview'),
-  checklistImgGreyPreview: document.getElementById('checklistImgGreyPreview'),
-  checklistImgChecklistStatus: document.getElementById('checklistImgChecklistStatus'),
   checklistImgColorStatus: document.getElementById('checklistImgColorStatus'),
-  checklistImgGreyStatus: document.getElementById('checklistImgGreyStatus'),
   productName: document.getElementById('productName'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
@@ -305,44 +299,35 @@ function syncGradeSubjectVisibility() {
 }
 
 // =========================================================================
-// Checklist product type — 3 explicitly-labeled required images that build
-// the collage Hero Cover (see drawChecklistHero). Kept separate from the
-// generic multi-image uploader so there's no ambiguity about which photo is
-// which — order in the generic uploader was too easy to get wrong.
+// Checklist product type — one explicitly-labeled required image (the Color
+// Placeholders preview) that builds the Hero Cover (see drawChecklistHero).
+// Kept separate from the generic multi-image uploader so there's no
+// ambiguity about which photo it is.
 // =========================================================================
-const checklistImages = { checklist: null, color: null, grey: null };
+const checklistImages = { color: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
 }
 
-function setupChecklistImageSlot(key, input, preview, status) {
-  input.addEventListener('change', () => {
-    const file = input.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        checklistImages[key] = img;
-        preview.innerHTML = `<img src="${reader.result}" alt="" />`;
-        status.textContent = '— uploaded';
-      };
-      img.src = reader.result;
+els.checklistImgColor.addEventListener('change', () => {
+  const file = els.checklistImgColor.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const img = new Image();
+    img.onload = () => {
+      checklistImages.color = img;
+      els.checklistImgColorPreview.innerHTML = `<img src="${reader.result}" alt="" />`;
+      els.checklistImgColorStatus.textContent = '— uploaded';
     };
-    reader.readAsDataURL(file);
-  });
-}
-setupChecklistImageSlot('checklist', els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus);
-setupChecklistImageSlot('color', els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus);
-setupChecklistImageSlot('grey', els.checklistImgGrey, els.checklistImgGreyPreview, els.checklistImgGreyStatus);
+    img.src = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
 
 function missingChecklistImageLabels() {
-  const missing = [];
-  if (!checklistImages.checklist) missing.push('Checklist Preview');
-  if (!checklistImages.color) missing.push('Color Placeholders Preview');
-  if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
-  return missing;
+  return checklistImages.color ? [] : ['Color Placeholders Preview'];
 }
 
 // Some badges don't make sense for certain product types (e.g. a checklist
@@ -1039,7 +1024,7 @@ function splitFeatureLine(text) {
   return { label: text, sub: '' };
 }
 
-function drawChecklistHero(ctx, brand, product, checklistImg, colorImg, greyImg) {
+function drawChecklistHero(ctx, brand, product, colorImg) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = textColorFor(brand, contrastText(brand.accentColor));
@@ -1084,45 +1069,26 @@ function drawChecklistHero(ctx, brand, product, checklistImg, colorImg, greyImg)
   const featureY = y + 56;
   const featureBottom = wrapText(ctx, features.join('   •   ').toUpperCase(), margin, featureY, contentW, 42, 'left');
 
-  // ---- Image row — the main focus, three clean labeled photos side by side ----
-  const gap = 30;
-  const capH = 54;
-  const imagesTop = featureBottom + 30;
-  const imagesBottom = SIZE - 110;
-  const imgH = imagesBottom - imagesTop - capH;
-  const colW = (contentW - gap * 2) / 3;
+  // ---- One large showcase image — the Color Placeholders preview ----
+  const imgTop = featureBottom + 40;
+  const imgBottom = SIZE - 100;
+  const imgH = imgBottom - imgTop;
 
-  const items = [
-    { img: checklistImg, caption: 'Fillable Checklist' },
-    { img: colorImg, caption: 'Color Placeholders' },
-    { img: greyImg, caption: 'Greyscale Placeholders' },
-  ];
+  ctx.save();
+  roundRect(ctx, margin, imgTop, contentW, imgH, 16);
+  ctx.clip();
+  if (colorImg) {
+    drawCover(ctx, margin, imgTop, contentW, imgH, colorImg);
+  } else {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(margin, imgTop, contentW, imgH);
+  }
+  ctx.restore();
 
-  items.forEach((item, i) => {
-    const x = margin + i * (colW + gap);
-
-    ctx.fillStyle = textColor;
-    ctx.font = `700 28px "${brand.font}"`;
-    ctx.textAlign = 'left';
-    ctx.fillText(item.caption.toUpperCase(), x, imagesTop + 28);
-
-    const cardY = imagesTop + capH;
-    ctx.save();
-    roundRect(ctx, x, cardY, colW, imgH, 14);
-    ctx.clip();
-    if (item.img) {
-      drawCover(ctx, x, cardY, colW, imgH, item.img);
-    } else {
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(x, cardY, colW, imgH);
-    }
-    ctx.restore();
-
-    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, x, cardY, colW, imgH, 14);
-    ctx.stroke();
-  });
+  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, margin, imgTop, contentW, imgH, 16);
+  ctx.stroke();
 }
 
 function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
@@ -1698,7 +1664,7 @@ els.form.addEventListener('submit', async e => {
       // images (enforced before we even get here — see the submit handler's
       // validation) — falls back to the standard hero otherwise.
       fn: (ctx) => (product.type === 'checklist' && missingChecklistImageLabels().length === 0)
-        ? drawChecklistHero(ctx, brand, product, checklistImages.checklist, checklistImages.color, checklistImages.grey)
+        ? drawChecklistHero(ctx, brand, product, checklistImages.color)
         : drawHero(ctx, brand, product, uploadedImages, logoImg),
     },
     {
