@@ -61,10 +61,6 @@ const els = {
   deleteProfileBtn: document.getElementById('deleteProfileBtn'),
   companyName: document.getElementById('companyName'),
   colorSchemeRow: document.getElementById('colorSchemeRow'),
-  textColorAuto: document.getElementById('textColorAuto'),
-  textColorField: document.getElementById('textColorField'),
-  textColor: document.getElementById('textColor'),
-  textColorHex: document.getElementById('textColorHex'),
   fontChoice: document.getElementById('fontChoice'),
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
@@ -146,8 +142,6 @@ function defaultProfile(name) {
     id: 'p_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
     name: name || 'My Shop',
     companyName: '',
-    textColorAuto: true,
-    textColor: '#2b2320',
     font: 'Poppins',
     watermarkEnabled: false,
     watermarkText: '',
@@ -222,10 +216,6 @@ window.addEventListener('pageshow', () => resyncProfileUI());
 
 function applyProfileToForm(p) {
   els.companyName.value = p.companyName || '';
-  els.textColorAuto.checked = p.textColorAuto !== false;
-  els.textColorField.hidden = els.textColorAuto.checked;
-  els.textColor.value = p.textColor || '#2b2320';
-  els.textColorHex.value = els.textColor.value.toUpperCase();
   els.fontChoice.value = p.font || 'Poppins';
 
   els.watermarkEnabled.checked = !!p.watermarkEnabled;
@@ -246,8 +236,6 @@ function persistFormToActiveProfile() {
   const p = getActiveProfile();
   if (!p) return;
   p.companyName = els.companyName.value;
-  p.textColorAuto = els.textColorAuto.checked;
-  p.textColor = els.textColor.value;
   p.font = els.fontChoice.value;
   p.watermarkEnabled = els.watermarkEnabled.checked;
   p.watermarkText = els.watermarkText.value;
@@ -305,7 +293,7 @@ els.deleteProfileBtn.addEventListener('click', () => {
   setStatus('Profile deleted.');
 });
 
-[els.companyName, els.textColor, els.fontChoice,
+[els.companyName, els.fontChoice,
   els.watermarkText, els.watermarkStyle, els.watermarkColor].forEach(el => {
   el.addEventListener('input', persistFormToActiveProfile);
   el.addEventListener('change', persistFormToActiveProfile);
@@ -323,11 +311,6 @@ els.watermarkOpacity.addEventListener('input', () => {
 
 els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
   cb.addEventListener('change', persistFormToActiveProfile);
-});
-
-els.textColorAuto.addEventListener('change', () => {
-  els.textColorField.hidden = els.textColorAuto.checked;
-  persistFormToActiveProfile();
 });
 
 function syncGradeSubjectVisibility() {
@@ -504,7 +487,6 @@ function bindColorHex(colorEl, hexEl) {
   });
 }
 
-bindColorHex(els.textColor, els.textColorHex);
 bindColorHex(els.watermarkColor, els.watermarkColorHex);
 
 // =========================================================================
@@ -945,16 +927,10 @@ function getBrand() {
     logoImgSrc: null,
     primaryColor: scheme.primary,
     accentColor: scheme.accent,
-    textColorOverride: els.textColorAuto.checked ? null : els.textColor.value,
     font: els.fontChoice.value,
   };
 }
 
-// If the user has set a custom text color, it wins; otherwise fall back to
-// whatever auto-contrast color the template would normally pick.
-function textColorFor(brand, autoColor) {
-  return brand.textColorOverride || autoColor;
-}
 
 function getProduct() {
   const badges = [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
@@ -991,7 +967,7 @@ function drawHero(ctx, brand, product, images, logoImg) {
     ctx.globalAlpha = 1;
   }
 
-  const textColor = textColorFor(brand, images[0] ? '#ffffff' : contrastText(brand.accentColor));
+  const textColor = images[0] ? '#ffffff' : contrastText(brand.accentColor);
 
   if (logoImg) {
     const lw = 200, lh = 200 * (logoImg.height / logoImg.width);
@@ -1055,10 +1031,10 @@ function splitFeatureLine(text) {
   return { label: text, sub: '' };
 }
 
-function drawChecklistHero(ctx, brand, product, colorImg) {
+function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
 
@@ -1113,6 +1089,9 @@ function drawChecklistHero(ctx, brand, product, colorImg) {
   } else {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(margin, imgTop, contentW, imgH);
+  }
+  if (watermark) {
+    drawWatermark(ctx, watermark.text, watermark, { x: margin, y: imgTop, w: contentW, h: imgH });
   }
   ctx.restore();
 
@@ -1199,7 +1178,7 @@ function drawIllustratedMockup(ctx, brand, product, images, kind, watermark) {
     ctx.restore();
   }
 
-  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const textColor = contrastText(brand.accentColor);
   const textTop = deviceBottom + (SIZE - 130 - deviceBottom) / 2 - 20;
   ctx.fillStyle = textColor;
   ctx.font = `700 74px "${brand.font}"`;
@@ -1257,7 +1236,7 @@ function drawPhotoMockup(ctx, brand, slot, designImg, watermark) {
 function drawMultiPageGrid(ctx, brand, product, images) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const textColor = contrastText(brand.accentColor);
 
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 40px "${brand.font}"`;
@@ -1317,7 +1296,7 @@ function drawMultiPageGrid(ctx, brand, product, images) {
 function drawIncluded(ctx, brand, product) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const textColor = contrastText(brand.accentColor);
 
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 46px "${brand.font}"`;
@@ -1365,7 +1344,7 @@ const DEFAULT_HOW_IT_WORKS_STEPS = [
 function drawHowItWorks(ctx, brand, product) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = textColorFor(brand, contrastText(brand.accentColor));
+  const textColor = contrastText(brand.accentColor);
 
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 46px "${brand.font}"`;
@@ -1418,7 +1397,7 @@ function drawHowItWorks(ctx, brand, product) {
 function drawBadges(ctx, brand, product) {
   ctx.fillStyle = brand.primaryColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
-  const textColor = textColorFor(brand, contrastText(brand.primaryColor));
+  const textColor = contrastText(brand.primaryColor);
 
   ctx.fillStyle = textColor;
   ctx.font = `700 60px "${brand.font}"`;
@@ -1695,7 +1674,7 @@ els.form.addEventListener('submit', async e => {
       // images (enforced before we even get here — see the submit handler's
       // validation) — falls back to the standard hero otherwise.
       fn: (ctx) => (product.type === 'checklist' && missingChecklistImageLabels().length === 0)
-        ? drawChecklistHero(ctx, brand, product, checklistImages.color)
+        ? drawChecklistHero(ctx, brand, product, checklistImages.color, watermarkFor('hero'))
         : drawHero(ctx, brand, product, uploadedImages, logoImg),
     },
     {
@@ -1736,11 +1715,12 @@ els.form.addEventListener('submit', async e => {
     name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
   }));
 
-  // Laptop/phone/custom mockups draw their own watermark internally, clipped
-  // to the screen/display area — applying it again here would double it up
-  // across the whole canvas. The multi-page grid has no such area, so it
-  // gets the full-canvas treatment like the other flat graphics.
-  const fullCanvasWatermarkKeys = new Set(['hero', 'included', 'steps', 'badges', 'pages']);
+  // Laptop/phone/custom mockups and the Hero Cover draw their own watermark
+  // internally, clipped to the screen/display/image area — applying it again
+  // here would double it up across the whole canvas. The multi-page grid has
+  // no such area, so it gets the full-canvas treatment like the other flat
+  // graphics.
+  const fullCanvasWatermarkKeys = new Set(['included', 'steps', 'badges', 'pages']);
 
   templates.forEach(t => {
     const canvas = makeCanvas();
