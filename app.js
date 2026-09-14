@@ -2,6 +2,7 @@ const SIZE = 2000;
 const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
 const THEME_KEY = 'etsyImageMaker.theme';
+const WATERMARK_SECTION_OPEN_KEY = 'etsyImageMaker.watermarkSectionOpen';
 
 // Two fixed color schemes for now, in place of a full custom color picker.
 const COLOR_SCHEME_KEY = 'etsyImageMaker.colorScheme';
@@ -96,6 +97,7 @@ const els = {
   seoTags: document.getElementById('seoTags'),
   seoTagCount: document.getElementById('seoTagCount'),
   copyTagsBtn: document.getElementById('copyTagsBtn'),
+  watermarkSection: document.getElementById('watermarkSection'),
   watermarkEnabled: document.getElementById('watermarkEnabled'),
   watermarkOptions: document.getElementById('watermarkOptions'),
   watermarkText: document.getElementById('watermarkText'),
@@ -317,6 +319,15 @@ els.watermarkOpacity.addEventListener('input', () => {
 
 els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
   cb.addEventListener('change', persistFormToActiveProfile);
+});
+
+// Collapsed by default — it takes real space and most listings never touch
+// it after the first setup, but remembers whichever state you leave it in.
+try {
+  if (localStorage.getItem(WATERMARK_SECTION_OPEN_KEY) === 'true') els.watermarkSection.open = true;
+} catch (e) { /* ignore */ }
+els.watermarkSection.addEventListener('toggle', () => {
+  try { localStorage.setItem(WATERMARK_SECTION_OPEN_KEY, String(els.watermarkSection.open)); } catch (e) { /* ignore */ }
 });
 
 function syncGradeSubjectVisibility() {

@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789424769" />
+<link rel="stylesheet" href="style.css?v=1789425069" />
 </head>
 <body>
 <header class="topbar">
@@ -216,8 +216,8 @@ Enjoy!"></textarea>
         </div>
       </section>
 
-      <section class="field-group">
-        <h2>Watermark <span class="hint">optional</span></h2>
+      <details class="field-group collapsible-group" id="watermarkSection">
+        <summary>Watermark <span class="hint">optional</span></summary>
         <label class="chip-toggle">
           <input type="checkbox" id="watermarkEnabled" /> Add a watermark to protect preview images
         </label>
@@ -259,7 +259,7 @@ Enjoy!"></textarea>
             <label class="chip"><input type="checkbox" value="badges"> Feature Badges</label>
           </div>
         </div>
-      </section>
+      </details>
 
       <button type="submit" class="btn btn-primary btn-generate">Generate Listing Images</button>
     </form>
@@ -287,6 +287,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789424769"></script>
+<script src="app.js?v=1789425069"></script>
 </body>
 </html>
