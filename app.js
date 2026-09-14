@@ -525,9 +525,23 @@ els.logoUpload.addEventListener('change', () => {
   reader.onload = () => {
     els.logoPreview.dataset.logo = reader.result;
     renderLogoPreview(reader.result);
-    persistFormToActiveProfile();
+
+    const img = new Image();
+    img.onload = () => {
+      const palette = extractPaletteFromImage(img);
+      if (palette) {
+        els.primaryColor.value = palette.primary;
+        els.primaryColorHex.value = palette.primary.toUpperCase();
+        els.accentColor.value = palette.accent;
+        els.accentColorHex.value = palette.accent.toUpperCase();
+        setStatus('Primary/accent colors set from logo.');
+      }
+      persistFormToActiveProfile();
+    };
+    img.src = reader.result;
   };
   reader.readAsDataURL(file);
+  els.logoUpload.value = ''; // allow re-selecting the same file to re-extract later
 });
 
 // =========================================================================
@@ -673,6 +687,72 @@ function luminance(hex) {
 
 function contrastText(hex) {
   return luminance(hex) > 0.6 ? '#2b2320' : '#ffffff';
+}
+
+function rgbToHex(r, g, b) {
+  const clamp = v => Math.max(0, Math.min(255, Math.round(v)));
+  return '#' + [r, g, b].map(v => clamp(v).toString(16).padStart(2, '0')).join('');
+}
+
+function colorSaturation(r, g, b) {
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  return max === 0 ? 0 : (max - min) / max;
+}
+
+// Picks a bold primary color and a pale accent tint from an uploaded logo:
+// primary favors common, saturated ("brand-colored") pixels; accent prefers
+// an actual light tone already present in the logo, falling back to a soft
+// tint of the primary color if the logo has no light pixels to draw from.
+function extractPaletteFromImage(img) {
+  const size = 120;
+  const scale = Math.min(size / img.naturalWidth, size / img.naturalHeight, 1);
+  const w = Math.max(1, Math.round(img.naturalWidth * scale));
+  const h = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+
+  let data;
+  try {
+    data = ctx.getImageData(0, 0, w, h).data;
+  } catch (e) {
+    return null; // tainted canvas or unreadable image — skip extraction
+  }
+
+  const buckets = new Map();
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] < 128) continue; // skip transparent
+    const r = data[i], g = data[i + 1], b = data[i + 2];
+    const light = (Math.max(r, g, b) + Math.min(r, g, b)) / 2 / 255;
+    if (light > 0.97 || light < 0.05) continue; // skip near-white/near-black
+    const qr = Math.round(r / 16) * 16, qg = Math.round(g / 16) * 16, qb = Math.round(b / 16) * 16;
+    const key = `${qr},${qg},${qb}`;
+    const bucket = buckets.get(key);
+    if (bucket) bucket.count++;
+    else buckets.set(key, { r: qr, g: qg, b: qb, count: 1 });
+  }
+
+  const candidates = [...buckets.values()];
+  if (!candidates.length) return null;
+
+  candidates.forEach(c => { c.sat = colorSaturation(c.r, c.g, c.b); });
+  candidates.sort((a, b) => (b.count * (0.4 + b.sat)) - (a.count * (0.4 + a.sat)));
+  const primary = candidates[0];
+
+  const lightCandidates = candidates
+    .filter(c => (Math.max(c.r, c.g, c.b) + Math.min(c.r, c.g, c.b)) / 2 / 255 > 0.75)
+    .sort((a, b) => b.count - a.count);
+
+  const accent = lightCandidates.length
+    ? lightCandidates[0]
+    : { r: primary.r + (255 - primary.r) * 0.88, g: primary.g + (255 - primary.g) * 0.88, b: primary.b + (255 - primary.b) * 0.88 };
+
+  return {
+    primary: rgbToHex(primary.r, primary.g, primary.b),
+    accent: rgbToHex(accent.r, accent.g, accent.b),
+  };
 }
 
 async function ensureFont(family) {
