@@ -954,28 +954,47 @@ function getProduct() {
   };
 }
 
-// Splits a "What's Included" line like "3 Placeholder Sizes — 9, 16, 25 per
-// page" into a bold label + smaller subtext, for the checklist hero's
-// feature boxes. Lines without a dash just render as a single label line.
-function splitFeatureLine(text) {
-  const parts = text.split(/\s+[—-]\s+/);
-  if (parts.length >= 2) return { label: parts[0], sub: parts.slice(1).join(' - ') };
-  return { label: text, sub: '' };
-}
+// Fixed facts about the Checklist + Placeholders product, shown as badges
+// rather than pulled from the free-text "What's Included" field — the same
+// four things are true for every listing this app generates, so there's no
+// reason to ask the user to retype them or risk them saying something else.
+const HERO_FEATURE_BADGES = [
+  `${PLACEHOLDER_SIZES.join(' / ')} PER PAGE`,
+  'COLOR + GREYSCALE',
+  'FILLABLE PDF',
+  'INSTANT DOWNLOAD',
+];
 
-function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
+function drawChecklistHero(ctx, brand, product, images, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
 
+  // ---- Subtle "Digital Download" badge, top right — small and single-line
+  // on purpose, so the Hero reads as a product cover rather than another
+  // info page. ----
+  ctx.font = `700 24px "${brand.font}"`;
+  const dlText = 'DIGITAL DOWNLOAD';
+  const dlPadX = 22, dlH = 50;
+  const dlW = ctx.measureText(dlText).width + dlPadX * 2;
+  const dlX = SIZE - margin - dlW, dlY = 58;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.1;
+  roundRect(ctx, dlX, dlY, dlW, dlH, dlH / 2);
+  ctx.fill();
+  ctx.globalAlpha = 0.85;
+  ctx.textAlign = 'center';
+  ctx.fillText(dlText, dlX + dlW / 2, dlY + dlH / 2 + 8);
+  ctx.globalAlpha = 1;
+
   // ---- Header — shop name is user-entered and unbounded in length, so it
   // shrinks (then truncates as a last resort) rather than ever overflowing
-  // past the canvas edge. ----
+  // past the canvas edge or under the badge. ----
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
-    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+    maxWidth: dlX - margin - 30, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
   });
 
   ctx.strokeStyle = brand.primaryColor;
@@ -989,7 +1008,7 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
 
   // ---- Headline — capped at 2 lines, auto-shrinking first and truncating
   // only as a last resort, so a long product name can never push the
-  // tagline/feature line/image area off the canvas. ----
+  // tagline/badges/image area off the canvas. ----
   ctx.fillStyle = textColor;
   const titleFit = fitLines(ctx, product.name, margin, 232, {
     maxWidth: contentW, maxLines: 2, startSize: 104, minSize: 60, step: 4, weight: 700, family: brand.font, label: 'Product name (Hero Cover)',
@@ -1005,30 +1024,54 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
     ctx.globalAlpha = 1;
   }
 
-  // ---- Feature line — up to 4 short badges, joined into one line that
-  // shrinks (then truncates) rather than clipping or running off the page.
-  const features = (product.bullets.length ? product.bullets : ['Instant Download', 'High Quality', 'Easy to Use'])
-    .slice(0, 4)
-    .map(raw => splitFeatureLine(raw).label);
-  ctx.fillStyle = brand.primaryColor;
-  const featureY = y + 56;
-  const featureBottom = fitLines(ctx, features.join('   •   ').toUpperCase(), margin, featureY, {
-    maxWidth: contentW, maxLines: 1, startSize: 34, minSize: 22, step: 2, weight: 600, family: brand.font, label: 'Feature list (Hero Cover)',
-  }).bottom;
+  // ---- Feature badges — fixed content, wraps to a second row if needed
+  // rather than shrinking to the point of being unreadable. ----
+  ctx.font = `600 30px "${brand.font}"`;
+  const chipPadX = 26, chipH = 60, chipGapX = 14, chipGapY = 14;
+  const chipRows = [];
+  let chipRow = [], chipRowW = 0;
+  HERO_FEATURE_BADGES.forEach(text => {
+    const w = ctx.measureText(text).width + chipPadX * 2;
+    if (chipRowW + w + chipGapX > contentW && chipRow.length) {
+      chipRows.push(chipRow);
+      chipRow = []; chipRowW = 0;
+    }
+    chipRow.push({ text, w });
+    chipRowW += w + chipGapX;
+  });
+  if (chipRow.length) chipRows.push(chipRow);
 
-  // ---- One large showcase image — the Color Placeholders preview. The top
-  // edge follows the text above it, but never eats into a minimum image
-  // height even in a worst-case pile-up of shrunk/truncated text. ----
+  let by = y + 32;
+  chipRows.forEach(row => {
+    let bx = margin;
+    row.forEach(({ text, w }) => {
+      ctx.fillStyle = brand.primaryColor;
+      ctx.globalAlpha = 0.12;
+      roundRect(ctx, bx, by, w, chipH, chipH / 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = brand.primaryColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(text, bx + w / 2, by + chipH / 2 + 10);
+      bx += w + chipGapX;
+    });
+    by += chipH + chipGapY;
+  });
+  const badgesBottom = by - chipGapY;
+
+  // ---- Large showcase image — the Color Placeholders preview. The top
+  // edge follows the content above it, but never eats into a minimum image
+  // height even in a worst-case pile-up of shrunk/truncated/wrapped text.
   const imgBottom = SIZE - 170;
-  const MIN_IMG_H = 550;
-  const imgTop = Math.min(featureBottom + 40, imgBottom - MIN_IMG_H);
+  const MIN_IMG_H = 500;
+  const imgTop = Math.min(badgesBottom + 40, imgBottom - MIN_IMG_H);
   const imgH = imgBottom - imgTop;
 
   ctx.save();
   roundRect(ctx, margin, imgTop, contentW, imgH, 16);
   ctx.clip();
-  if (colorImg) {
-    drawContain(ctx, margin, imgTop, contentW, imgH, colorImg);
+  if (images.color) {
+    drawContain(ctx, margin, imgTop, contentW, imgH, images.color);
   } else {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(margin, imgTop, contentW, imgH);
@@ -1042,6 +1085,40 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
   ctx.lineWidth = 2;
   roundRect(ctx, margin, imgTop, contentW, imgH, 16);
   ctx.stroke();
+
+  // ---- Small checklist preview, overlapping the placeholder image's
+  // corner — makes it immediately clear this is a bundle, not one image.
+  if (images.checklist) {
+    const thumbW = 420, thumbH = 420, thumbPad = 14;
+    const thumbX = margin + 50;
+    const thumbY = Math.max(imgTop + 20, imgBottom - thumbH - 50);
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0,0,0,0.16)';
+    roundRect(ctx, thumbX + 8, thumbY + 10, thumbW, thumbH, 16);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, thumbX, thumbY, thumbW, thumbH, 16);
+    ctx.fill();
+
+    ctx.save();
+    roundRect(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, 10);
+    ctx.clip();
+    drawContain(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, images.checklist);
+    if (watermark) {
+      drawWatermark(ctx, watermark.text, watermark, {
+        x: thumbX + thumbPad, y: thumbY + thumbPad, w: thumbW - thumbPad * 2, h: thumbH - thumbPad * 2,
+      });
+    }
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, thumbX, thumbY, thumbW, thumbH, 16);
+    ctx.stroke();
+  }
 }
 
 // "Everything Included" showcase — layout is fixed on purpose (title, badge,
@@ -2373,7 +2450,7 @@ els.form.addEventListener('submit', async e => {
       label: 'Hero Cover',
       key: 'hero',
       include: true,
-      fn: (ctx) => drawChecklistHero(ctx, brand, product, checklistImages.color, watermarkFor('hero')),
+      fn: (ctx) => drawChecklistHero(ctx, brand, product, checklistImages, watermarkFor('hero')),
     },
     {
       label: 'Everything Included',
