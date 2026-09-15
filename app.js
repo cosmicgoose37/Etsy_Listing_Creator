@@ -12,6 +12,21 @@ const COLOR_SCHEMES = [
 ];
 
 // =========================================================================
+// Shared product-data facts — every template pulls wording from here so the
+// same claim (page sizes, digital-only status, ZIP count) can't drift into
+// inconsistent copy across the 7 listing images.
+// =========================================================================
+const PLACEHOLDER_SIZES = [9, 16, 25];
+const PLACEHOLDER_SIZES_LIST = PLACEHOLDER_SIZES.join(', ').replace(/, ([^,]*)$/, ' or $1');
+const IS_DIGITAL_PRODUCT = true;
+const ZIP_FILE_COUNT = 1;
+const DIGITAL_DISCLAIMER = 'Digital product only • No physical item will be shipped';
+
+function zipFileWord(count) {
+  return count === 1 ? 'ZIP file' : 'ZIP files';
+}
+
+// =========================================================================
 // Theme (dark mode)
 // =========================================================================
 function systemPrefersDark() {
@@ -96,6 +111,7 @@ const els = {
   customBadge: document.getElementById('customBadge'),
   gallery: document.getElementById('gallery'),
   emptyState: document.getElementById('emptyState'),
+  validationWarnings: document.getElementById('validationWarnings'),
   downloadAllBtn: document.getElementById('downloadAllBtn'),
   statusMsg: document.getElementById('statusMsg'),
   seoPanel: document.getElementById('seoPanel'),
@@ -117,6 +133,14 @@ const els = {
 
 let generatedCanvases = []; // { name, canvas }
 let lastTags = [];
+
+// Pre-export validation — collected while drawing, surfaced as a non-
+// blocking banner after generation so nothing is ever silently clipped or
+// distorted without the user knowing about it.
+let generationWarnings = [];
+function warnOnce(msg) {
+  if (!generationWarnings.includes(msg)) generationWarnings.push(msg);
+}
 
 // =========================================================================
 // Color scheme (2 fixed options, saved locally)
@@ -544,6 +568,10 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Crop-to-fill: preserves the box's aspect ratio by cropping the image.
+// Use for decorative/marketing photos where filling the frame matters more
+// than showing every pixel. Not used for real product previews — see
+// drawContain below.
 function drawCover(ctx, x, y, w, h, img) {
   const ir = img.width / img.height;
   const r = w / h;
@@ -562,10 +590,37 @@ function drawCover(ctx, x, y, w, h, img) {
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
-function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
+// Letterbox fit: shows the entire image, uncropped, centered inside the box
+// with the given background filling any leftover space. This is the default
+// for real product/document/PDF previews so nothing important is ever cut
+// off — a checklist or placeholder screenshot with a different aspect ratio
+// than its display box must still be shown in full.
+function drawContain(ctx, x, y, w, h, img, bgColor = '#ffffff') {
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(x, y, w, h);
+  const ir = img.width / img.height;
+  const r = w / h;
+  let dw, dh, dx, dy;
+  if (ir > r) {
+    dw = w;
+    dh = w / ir;
+    dx = x;
+    dy = y + (h - dh) / 2;
+  } else {
+    dh = h;
+    dw = h * ir;
+    dx = x + (w - dw) / 2;
+    dy = y;
+  }
+  ctx.drawImage(img, dx, dy, dw, dh);
+}
+
+// Pure word-wrap: measures with whatever font is already set on ctx and
+// returns the line array without drawing anything, so callers can check
+// how many lines a piece of text will need before committing to draw it.
+function wrapLines(ctx, text, maxWidth) {
   const words = text.split(' ');
   let line = '';
-  let curY = y;
   const lines = [];
   words.forEach(word => {
     const test = line ? line + ' ' + word : word;
@@ -577,12 +632,104 @@ function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
     }
   });
   if (line) lines.push(line);
-  lines.forEach(l => {
+  return lines;
+}
+
+function wrapText(ctx, text, x, y, maxWidth, lineHeight, align = 'left') {
+  let curY = y;
+  wrapLines(ctx, text, maxWidth).forEach(l => {
     ctx.textAlign = align;
     ctx.fillText(l, x, curY);
     curY += lineHeight;
   });
   return curY;
+}
+
+// Truncates a single line of text with an ellipsis so it never runs past
+// maxWidth, regardless of font size. Used as the last-resort safety net
+// after auto-shrinking has already hit its minimum size.
+function truncateToWidth(ctx, text, maxWidth) {
+  if (ctx.measureText(text).width <= maxWidth) return text;
+  let lo = 0, hi = text.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    const candidate = text.slice(0, mid).trimEnd() + '…';
+    if (ctx.measureText(candidate).width <= maxWidth) lo = mid; else hi = mid - 1;
+  }
+  return lo > 0 ? text.slice(0, lo).trimEnd() + '…' : '…';
+}
+
+// Overflow-safe multi-line text: shrinks the font size in steps until the
+// wrapped text fits within maxLines, then draws it. If it still doesn't fit
+// at minSize, the last visible line is truncated with an ellipsis rather
+// than letting text run past its container or off the canvas. Returns the Y
+// position after the last line, the font size actually used, and whether
+// truncation was needed (for surfacing in the pre-export validation pass).
+function fitLines(ctx, text, x, y, opts) {
+  const {
+    maxWidth, maxLines, lineHeightRatio = 1.06,
+    startSize, minSize = Math.round(startSize * 0.55), step = 4,
+    weight = 700, family, align = 'left', label,
+  } = opts;
+
+  let fontSize = startSize;
+  let lines;
+  for (;;) {
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+    lines = wrapLines(ctx, text, maxWidth);
+    if (lines.length <= maxLines || fontSize <= minSize) break;
+    fontSize -= step;
+  }
+
+  let truncated = false;
+  if (lines.length > maxLines) {
+    truncated = true;
+    lines = lines.slice(0, maxLines);
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+    lines[maxLines - 1] = truncateToWidth(ctx, lines[maxLines - 1], maxWidth);
+  }
+
+  const lineHeight = Math.round(fontSize * lineHeightRatio);
+  ctx.font = `${weight} ${fontSize}px "${family}"`;
+  ctx.textAlign = align;
+  let curY = y;
+  lines.forEach(l => {
+    ctx.fillText(l, x, curY);
+    curY += lineHeight;
+  });
+  if (truncated) {
+    warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
+  }
+  return { bottom: curY, fontSize, truncated };
+}
+
+// Overflow-safe single line: shrinks first, then truncates with an ellipsis
+// as a last resort. Used for user-entered values that must stay on one line
+// (a shop name in a header, a card title) no matter how long they are.
+function fitSingleLine(ctx, text, x, y, opts) {
+  const {
+    maxWidth, startSize, minSize = Math.round(startSize * 0.6), step = 2,
+    weight = 700, family, align = 'left', label,
+  } = opts;
+
+  let fontSize = startSize;
+  ctx.font = `${weight} ${fontSize}px "${family}"`;
+  while (ctx.measureText(text).width > maxWidth && fontSize > minSize) {
+    fontSize -= step;
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+  }
+  let out = text;
+  let truncated = false;
+  if (ctx.measureText(out).width > maxWidth) {
+    out = truncateToWidth(ctx, out, maxWidth);
+    truncated = true;
+  }
+  ctx.textAlign = align;
+  ctx.fillText(out, x, y);
+  if (truncated) {
+    warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
+  }
+  return { fontSize, truncated };
 }
 
 function hexToRgb(hex) {
@@ -708,11 +855,13 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
   const margin = 100;
   const contentW = SIZE - margin * 2;
 
-  // ---- Header ----
+  // ---- Header — shop name is user-entered and unbounded in length, so it
+  // shrinks (then truncates as a last resort) rather than ever overflowing
+  // past the canvas edge. ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -723,39 +872,48 @@ function drawChecklistHero(ctx, brand, product, colorImg, watermark) {
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // ---- Headline ----
+  // ---- Headline — capped at 2 lines, auto-shrinking first and truncating
+  // only as a last resort, so a long product name can never push the
+  // tagline/feature line/image area off the canvas. ----
   ctx.fillStyle = textColor;
-  ctx.font = `700 104px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  let y = wrapText(ctx, product.name, margin, 232, contentW, 110, 'left');
+  const titleFit = fitLines(ctx, product.name, margin, 232, {
+    maxWidth: contentW, maxLines: 2, startSize: 104, minSize: 60, step: 4, weight: 700, family: brand.font, label: 'Product name (Hero Cover)',
+  });
+  let y = titleFit.bottom;
 
   if (product.tagline) {
-    ctx.font = `500 38px "${brand.font}"`;
+    ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.7;
-    y = wrapText(ctx, product.tagline, margin, y + 4, contentW, 44, 'left');
+    y = fitLines(ctx, product.tagline, margin, y + 4, {
+      maxWidth: contentW, maxLines: 1, startSize: 38, minSize: 24, step: 2, weight: 500, family: brand.font, label: 'Tagline (Hero Cover)',
+    }).bottom;
     ctx.globalAlpha = 1;
   }
 
-  // ---- Feature line — one simple line, not boxes, to keep this calm ----
+  // ---- Feature line — up to 4 short badges, joined into one line that
+  // shrinks (then truncates) rather than clipping or running off the page.
   const features = (product.bullets.length ? product.bullets : ['Instant Download', 'High Quality', 'Easy to Use'])
-    .slice(0, 3)
+    .slice(0, 4)
     .map(raw => splitFeatureLine(raw).label);
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `600 34px "${brand.font}"`;
-  ctx.textAlign = 'left';
   const featureY = y + 56;
-  const featureBottom = wrapText(ctx, features.join('   •   ').toUpperCase(), margin, featureY, contentW, 42, 'left');
+  const featureBottom = fitLines(ctx, features.join('   •   ').toUpperCase(), margin, featureY, {
+    maxWidth: contentW, maxLines: 1, startSize: 34, minSize: 22, step: 2, weight: 600, family: brand.font, label: 'Feature list (Hero Cover)',
+  }).bottom;
 
-  // ---- One large showcase image — the Color Placeholders preview ----
-  const imgTop = featureBottom + 40;
+  // ---- One large showcase image — the Color Placeholders preview. The top
+  // edge follows the text above it, but never eats into a minimum image
+  // height even in a worst-case pile-up of shrunk/truncated text. ----
   const imgBottom = SIZE - 170;
+  const MIN_IMG_H = 550;
+  const imgTop = Math.min(featureBottom + 40, imgBottom - MIN_IMG_H);
   const imgH = imgBottom - imgTop;
 
   ctx.save();
   roundRect(ctx, margin, imgTop, contentW, imgH, 16);
   ctx.clip();
   if (colorImg) {
-    drawCover(ctx, margin, imgTop, contentW, imgH, colorImg);
+    drawContain(ctx, margin, imgTop, contentW, imgH, colorImg);
   } else {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(margin, imgTop, contentW, imgH);
@@ -780,11 +938,11 @@ const SHOWCASE_SIZE_OPTIONS = [
   { n: '16', label: 'cards/page', desc: 'smaller layout' },
   { n: '25', label: 'cards/page', desc: 'most compact' },
 ];
-const SHOWCASE_STEPS = [
-  'Unzip your instant download',
-  'Choose 9, 16 or 25 cards/page',
-  'Pick color or greyscale',
-  'Print, cut & place in your binder',
+// The actual file inventory — not a repeat of the "3 Easy Steps" walkthrough
+// image, which already covers how to use the download.
+const SHOWCASE_FILE_INVENTORY = [
+  'Fillable checklist',
+  ...PLACEHOLDER_SIZES.map(n => `${n}/page Color + Greyscale`),
 ];
 const SHOWCASE_CARDS = [
   { key: 'checklist', title: 'Fillable Checklist', desc: 'Use digitally or print it' },
@@ -799,11 +957,13 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   const margin = 100;
   const contentW = SIZE - margin * 2;
 
-  // ---- Header ----
+  // ---- Header — leaves clearance for the corner badge so a long shop
+  // name can never run underneath it. ----
+  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -815,7 +975,6 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   // ---- "Digital Download" badge, top right ----
-  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
@@ -838,11 +997,15 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   ctx.fillText('Everything Included', margin, 250);
   ctx.fillText('in Your Download', margin, 340);
 
-  // ---- Subtitle — the one editable piece, built from the product name ----
-  ctx.font = `500 38px "${brand.font}"`;
+  // ---- Subtitle — the one editable piece, built from the product name.
+  // Capped at 2 lines so an unusually long product name can't push the
+  // cards below off the canvas. ----
+  ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.7;
   const subtitle = `A complete ${product.name} toolkit for planning and tracking your binder.`;
-  const subtitleBottom = wrapText(ctx, subtitle, margin, 416, contentW, 48, 'left');
+  const subtitleBottom = fitLines(ctx, subtitle, margin, 416, {
+    maxWidth: contentW, maxLines: 2, startSize: 38, minSize: 26, step: 2, weight: 500, family: brand.font, label: 'Product name (Everything Included subtitle)',
+  }).bottom;
   ctx.globalAlpha = 1;
 
   // ---- Three preview cards ----
@@ -869,7 +1032,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[card.key];
     if (img) {
-      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+      drawContain(ctx, imgX, imgY, imgW, imgH, img);
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
@@ -948,47 +1111,58 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.globalAlpha = 1;
   });
 
-  // Right column — how to use it
+  // Right column — the actual file inventory (not a repeat of the "how to
+  // use it" walkthrough, which already has its own dedicated listing image)
   const rightX = midX + colPad;
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 34px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText('HOW TO USE IT', rightX, boxTop + 84);
+  ctx.fillText('FILES INCLUDED', rightX, boxTop + 84);
 
-  const stepR = 30;
-  const stepTextX = rightX + stepR * 2 + 24;
-  const stepTextMaxW = margin + contentW - stepTextX - colPad + 40;
-  const stepsTop = boxTop + 84 + 60;
-  const stepGap = (boxH - 84 - 60 - 30) / SHOWCASE_STEPS.length;
-  SHOWCASE_STEPS.forEach((step, i) => {
-    const cy = stepsTop + i * stepGap + stepR;
+  const iconR = 24;
+  const itemTextX = rightX + iconR * 2 + 24;
+  const itemTextMaxW = margin + contentW - itemTextX - colPad + 40;
+  const itemsTop = boxTop + 84 + 60;
+  const itemGap = (boxH - 84 - 60 - 30) / SHOWCASE_FILE_INVENTORY.length;
+  SHOWCASE_FILE_INVENTORY.forEach((item, i) => {
+    const cy = itemsTop + i * itemGap + iconR;
     ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.14;
     ctx.beginPath();
-    ctx.arc(rightX + stepR, cy, stepR, 0, Math.PI * 2);
+    ctx.arc(rightX + iconR, cy, iconR, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = contrastText(brand.primaryColor);
-    ctx.font = `700 30px "${brand.font}"`;
-    ctx.textAlign = 'center';
-    ctx.fillText(String(i + 1), rightX + stepR, cy + 11);
+    ctx.globalAlpha = 1;
+    ctx.strokeStyle = brand.primaryColor;
+    ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.beginPath();
+    ctx.moveTo(rightX + iconR - 10, cy);
+    ctx.lineTo(rightX + iconR - 3, cy + 7);
+    ctx.lineTo(rightX + iconR + 10, cy - 9);
+    ctx.stroke();
 
     ctx.fillStyle = textColor;
     ctx.font = `600 32px "${brand.font}"`;
     ctx.textAlign = 'left';
-    ctx.fillText(step, stepTextX, cy + 11, stepTextMaxW);
+    ctx.fillText(item, itemTextX, cy + 11, itemTextMaxW);
   });
 
-  // ---- Footer ----
+  // ---- Footer — the shop name's available width is computed from the
+  // disclaimer's actual rendered width, not a guess, so a long shop name
+  // can never collide with it regardless of either string's length. ----
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.55;
   ctx.font = `500 28px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText('Digital product only • No physical item will be shipped', margin, SIZE - 55);
+  ctx.fillText(DIGITAL_DISCLAIMER, margin, SIZE - 55);
+  const disclaimerW = ctx.measureText(DIGITAL_DISCLAIMER).width;
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'right';
-  ctx.fillText(brand.companyName.toUpperCase(), SIZE - margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), SIZE - margin, SIZE - 55, {
+    maxWidth: contentW - disclaimerW - 60, startSize: 30, minSize: 18, weight: 700, family: brand.font, align: 'right', label: 'Shop name',
+  });
 }
 
 // "Choose the Size" guide — layout is fixed on purpose (title, subtitle,
@@ -1009,9 +1183,9 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 
   // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -1074,7 +1248,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[opt.key];
     if (img) {
-      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+      drawContain(ctx, imgX, imgY, imgW, imgH, img);
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
@@ -1127,9 +1301,9 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 30px "${brand.font}"`;
@@ -1154,9 +1328,9 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 
   // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -1213,7 +1387,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[c.key];
     if (img) {
-      drawCover(ctx, imgX, imgY, imgW, imgH, img);
+      drawContain(ctx, imgX, imgY, imgW, imgH, img);
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
@@ -1283,9 +1457,9 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 30px "${brand.font}"`;
@@ -1303,7 +1477,7 @@ const EASY_STEPS_CARDS = [
   },
   {
     n: '2', heading: 'PRINT + CUT',
-    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Use your preferred paper or cardstock'],
+    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Print at 100% — do not use Fit to Page'],
   },
   {
     n: '3', heading: 'PLACE IN BINDER',
@@ -1318,11 +1492,13 @@ function drawEasySteps(ctx, brand, product) {
   const margin = 100;
   const contentW = SIZE - margin * 2;
 
-  // ---- Header ----
+  // ---- Header — leaves clearance for the corner badge so a long shop
+  // name can never run underneath it. ----
+  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -1334,7 +1510,6 @@ function drawEasySteps(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   // ---- "Instant Download" badge, top right ----
-  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
@@ -1424,9 +1599,9 @@ function drawEasySteps(ctx, brand, product) {
       ctx.globalAlpha = 1;
 
       ctx.fillStyle = textColor;
-      ctx.font = `500 26px "${brand.font}"`;
-      ctx.textAlign = 'left';
-      wrapText(ctx, bullet, textX, by, textMaxW, 34, 'left');
+      fitLines(ctx, bullet, textX, by, {
+        maxWidth: textMaxW, maxLines: 2, startSize: 26, minSize: 18, step: 2, weight: 500, family: brand.font, label: 'List item',
+      });
     });
   });
 
@@ -1461,7 +1636,7 @@ function drawEasySteps(ctx, brand, product) {
   ctx.globalAlpha = 0.55;
   ctx.font = `500 26px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('Digital product only • No physical item will be shipped', SIZE / 2, SIZE - 140);
+  ctx.fillText(DIGITAL_DISCLAIMER, SIZE / 2, SIZE - 140);
   ctx.globalAlpha = 1;
 
   ctx.strokeStyle = brand.primaryColor;
@@ -1474,9 +1649,9 @@ function drawEasySteps(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 30px "${brand.font}"`;
@@ -1506,9 +1681,9 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 
   // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -1539,7 +1714,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.clip();
   const img = images.checklist;
   if (img) {
-    drawCover(ctx, margin, imgTop, contentW, imgH, img);
+    drawContain(ctx, margin, imgTop, contentW, imgH, img);
   } else {
     ctx.fillStyle = '#f1ece4';
     ctx.fillRect(margin, imgTop, contentW, imgH);
@@ -1616,9 +1791,9 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
       ctx.globalAlpha = 1;
 
       ctx.fillStyle = textColor;
-      ctx.font = `500 26px "${brand.font}"`;
-      ctx.textAlign = 'left';
-      wrapText(ctx, bullet, textX, by, textMaxW, 34, 'left');
+      fitLines(ctx, bullet, textX, by, {
+        maxWidth: textMaxW, maxLines: 2, startSize: 26, minSize: 18, step: 2, weight: 500, family: brand.font, label: 'List item',
+      });
     });
   });
 
@@ -1653,9 +1828,9 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 30px "${brand.font}"`;
@@ -1663,18 +1838,25 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
-// "Your Download Is Ready in Minutes" guide — entirely fixed (no images, no
+// "How to Access Your Download" guide — entirely fixed (no images, no
 // product-specific text), the last of the 7 listing images. Always the same
 // post-purchase walkthrough regardless of which product this happens to be.
-const DOWNLOAD_READY_STEPS = [
-  { n: '1', heading: 'PURCHASE', desc: 'Complete your Etsy order.' },
-  { n: '2', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
-  { n: '3', heading: 'UNZIP', desc: 'Open the downloaded ZIP folder.' },
-  { n: '4', heading: 'CHOOSE YOUR FILES', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
-  { n: '5', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
-];
+// A function rather than a plain constant so the ZIP step can pluralize
+// correctly if zip_file_count is ever more than 1.
+function getDownloadReadySteps() {
+  const zipCount = ZIP_FILE_COUNT;
+  const zipPhrase = zipCount === 1 ? `the downloaded ${zipFileWord(zipCount)}` : `all ${zipCount} downloaded ${zipFileWord(zipCount)}`;
+  return [
+    { n: '1', heading: 'PURCHASE', desc: 'Complete your Etsy order.' },
+    { n: '2', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
+    { n: '3', heading: 'UNZIP', desc: `Open ${zipPhrase}.` },
+    { n: '4', heading: 'CHOOSE YOUR FILES', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
+    { n: '5', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
+  ];
+}
 
 function drawDownloadReady(ctx, brand, product) {
+  const DOWNLOAD_READY_STEPS = getDownloadReadySteps();
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = contrastText(brand.accentColor);
@@ -1683,9 +1865,9 @@ function drawDownloadReady(ctx, brand, product) {
 
   // ---- Header ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 32px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, 108);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
@@ -1700,13 +1882,13 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.font = `700 84px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText('Your Download Is Ready', margin, 250);
-  ctx.fillText('in Minutes', margin, 340);
+  ctx.fillText('How to Access', margin, 250);
+  ctx.fillText('Your Download', margin, 340);
 
   // ---- Subtitle (fixed) ----
   ctx.globalAlpha = 0.7;
   ctx.font = `500 38px "${brand.font}"`;
-  wrapText(ctx, 'A simple guide to what happens after you purchase.', margin, 416, contentW, 48, 'left');
+  wrapText(ctx, 'What happens after you purchase.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
   // ---- Five stacked step rows, connected by arrows ----
@@ -1791,7 +1973,7 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.globalAlpha = 0.55;
   ctx.font = `500 26px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('Digital download only • No physical product will be shipped', SIZE / 2, SIZE - 140);
+  ctx.fillText(DIGITAL_DISCLAIMER, SIZE / 2, SIZE - 140);
   ctx.globalAlpha = 1;
 
   ctx.strokeStyle = brand.primaryColor;
@@ -1804,9 +1986,9 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = brand.primaryColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText(brand.companyName.toUpperCase(), margin, SIZE - 55);
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
 
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 30px "${brand.font}"`;
@@ -2004,6 +2186,39 @@ function downloadCanvas(canvas, name) {
   link.click();
 }
 
+// Checklist/placeholder screenshots now display via drawContain (letterbox,
+// full image always visible) rather than cropping. An upload whose aspect
+// ratio is very different from a "normal" screenshot will still show in
+// full, but with a lot of background padding around it — worth flagging so
+// the user can swap in a closer-fitting image if that's not what they want.
+const CHECKLIST_IMAGE_LABELS = {
+  checklist: 'Checklist Screenshot', color: 'Color Placeholders Preview', grey: 'Greyscale Placeholders Preview',
+  size9: '9 Cards/Page Layout Preview', size16: '16 Cards/Page Layout Preview', size25: '25 Cards/Page Layout Preview',
+};
+function checkImageAspectRatios() {
+  Object.entries(checklistImages).forEach(([key, img]) => {
+    if (!img) return;
+    const ar = img.naturalWidth / img.naturalHeight;
+    if (ar < 0.4 || ar > 2.5) {
+      warnOnce(`${CHECKLIST_IMAGE_LABELS[key] || key} has an unusual aspect ratio (${img.naturalWidth}×${img.naturalHeight}) — it will show with noticeable background padding around it rather than filling its frame.`);
+    }
+  });
+}
+
+function renderValidationWarnings() {
+  if (!els.validationWarnings) return;
+  if (!generationWarnings.length) {
+    els.validationWarnings.hidden = true;
+    els.validationWarnings.innerHTML = '';
+    return;
+  }
+  els.validationWarnings.hidden = false;
+  els.validationWarnings.innerHTML = `
+    <strong>Before you publish, review:</strong>
+    <ul>${generationWarnings.map(w => `<li>${w}</li>`).join('')}</ul>
+  `;
+}
+
 els.form.addEventListener('submit', async e => {
   e.preventDefault();
 
@@ -2020,7 +2235,9 @@ els.form.addEventListener('submit', async e => {
   setStatus('Generating images…');
   els.gallery.innerHTML = '';
   generatedCanvases = [];
+  generationWarnings = [];
   els.emptyState.style.display = 'none';
+  checkImageAspectRatios();
 
   const brand = getBrand();
   const product = getProduct();
@@ -2069,7 +2286,7 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawChecklistGuide(ctx, brand, product, checklistImages, watermarkFor('checklistguide')),
     },
     {
-      label: 'Your Download Is Ready',
+      label: 'How to Access Your Download',
       key: 'ready',
       include: true,
       fn: (ctx) => drawDownloadReady(ctx, brand, product),
@@ -2081,26 +2298,23 @@ els.form.addEventListener('submit', async e => {
     name: `${String(i + 1).padStart(2, '0')} ${t.label}`,
   }));
 
-  // The Hero Cover, Everything Included showcase, Choose Your Size guide,
-  // Print Style guide, and Track Your Collection guide all draw their own
-  // watermark internally, clipped to their image areas — applying it again
-  // here would double it up across the whole canvas. 3 Easy Steps and Your
-  // Download Is Ready have no such area, so they get the full-canvas
-  // treatment.
-  const fullCanvasWatermarkKeys = new Set(['easysteps', 'ready']);
-
+  // Watermarking is automatic and role-based: the Hero Cover, Everything
+  // Included showcase, Choose Your Size guide, Print Style guide, and Track
+  // Your Collection guide each draw their own watermark internally, clipped
+  // to their real-product-preview image areas. 3 Easy Steps and Your
+  // Download Is Ready are decorative/text-only and are never watermarked,
+  // full canvas or otherwise — there's no "actual artwork" on them to
+  // protect.
   templates.forEach(t => {
     const canvas = makeCanvas();
     const ctx = canvas.getContext('2d');
     t.fn(ctx);
-    if (fullCanvasWatermarkKeys.has(t.key) && watermark.enabled && watermark.targets.has(t.key)) {
-      drawWatermark(ctx, watermark.text, watermark);
-    }
     addCard(t.name, canvas);
     generatedCanvases.push({ name: t.name, canvas });
   });
 
   renderSEO(brand, product);
+  renderValidationWarnings();
 
   els.downloadAllBtn.disabled = false;
   setStatus(`Done — ${templates.length} images ready.`);

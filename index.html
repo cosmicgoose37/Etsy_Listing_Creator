@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789429479" />
+<link rel="stylesheet" href="style.css?v=1789438361" />
 </head>
 <body>
 <header class="topbar">
@@ -206,15 +206,13 @@ Enjoy!"></textarea>
             <input type="range" id="watermarkOpacity" min="5" max="60" value="30" />
           </label>
 
-          <label>Apply to <span class="hint">(images showing your actual artwork, by default)</span></label>
+          <label>Apply to <span class="hint">(real product previews only — text-only slides are never watermarked)</span></label>
           <div class="badge-options" id="watermarkTargets">
             <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
             <label class="chip"><input type="checkbox" value="showcase" checked> Everything Included</label>
             <label class="chip"><input type="checkbox" value="sizes" checked> Choose Your Size</label>
             <label class="chip"><input type="checkbox" value="printstyle" checked> Print Style</label>
             <label class="chip"><input type="checkbox" value="checklistguide" checked> Track Your Collection</label>
-            <label class="chip"><input type="checkbox" value="easysteps"> 3 Easy Steps</label>
-            <label class="chip"><input type="checkbox" value="ready"> Your Download Is Ready</label>
           </div>
         </div>
       </details>
@@ -227,6 +225,8 @@ Enjoy!"></textarea>
     <div id="emptyState" class="empty-state">
       <p>Fill in your brand and product details, then click <strong>Generate Listing Images</strong> to build your full Etsy image set.</p>
     </div>
+
+    <div id="validationWarnings" class="validation-warnings" hidden></div>
 
     <div id="seoPanel" class="seo-panel" hidden>
       <h2>SEO Title &amp; Tags <span class="hint">rule-based suggestions from your product details — review before publishing</span></h2>
@@ -245,6 +245,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789429479"></script>
+<script src="app.js?v=1789438361"></script>
 </body>
 </html>
