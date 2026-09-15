@@ -1041,12 +1041,14 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
   });
 
+  // The rule stops short of the badge instead of running its full width —
+  // otherwise it shows through the badge's semi-transparent fill.
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(margin, 128);
-  ctx.lineTo(SIZE - margin, 128);
+  ctx.lineTo(badgeX - 30, 128);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
@@ -1576,12 +1578,14 @@ function drawEasySteps(ctx, brand, product) {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
   });
 
+  // The rule stops short of the badge instead of running its full width —
+  // otherwise it shows through the badge's semi-transparent fill.
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.25;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(margin, 128);
-  ctx.lineTo(SIZE - margin, 128);
+  ctx.lineTo(badgeX - 30, 128);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
