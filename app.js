@@ -1540,7 +1540,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 // never change); only the 2 preview images differ, one per print style.
 const PRINT_STYLE_CARDS = [
   { key: 'color', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
-  { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Cleaner, lower-ink printing option', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Printer-friendly greyscale option', note: 'Available in 9 • 16 • 25 cards/page' },
 ];
 
 function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
@@ -1587,6 +1587,24 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   PRINT_STYLE_CARDS.forEach((c, i) => {
     const cardX = margin + i * (cardW + cardGap);
     const cx = cardX + cardW / 2;
+
+    // ---- Subtle background tint behind each card — a soft multi-hue wash
+    // for Color, a flat neutral grey for Greyscale — so the two options
+    // read as visually distinct at a glance, not just via their labels. ----
+    const haloPad = 24;
+    const haloX = cardX - haloPad, haloY = cardsTop - haloPad;
+    const haloW = cardW + haloPad * 2, haloH = cardH + haloPad * 2;
+    if (c.key === 'color') {
+      const grad = ctx.createLinearGradient(haloX, haloY, haloX + haloW, haloY + haloH);
+      grad.addColorStop(0, 'rgba(255, 110, 110, 0.12)');
+      grad.addColorStop(0.5, 'rgba(150, 110, 255, 0.12)');
+      grad.addColorStop(1, 'rgba(90, 180, 255, 0.12)');
+      ctx.fillStyle = grad;
+    } else {
+      ctx.fillStyle = 'rgba(120, 120, 120, 0.10)';
+    }
+    roundRect(ctx, haloX, haloY, haloW, haloH, 30);
+    ctx.fill();
 
     ctx.fillStyle = '#ffffff';
     roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
