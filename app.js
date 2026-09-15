@@ -1372,9 +1372,9 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 // card labels/descriptions/badges, and the highlight box never change);
 // only the 3 layout-preview images differ, one per card size.
 const SIZE_GUIDE_CARDS = [
-  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', caption: '9 cards/page' },
+  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', caption: '9 cards/page', accentBadge: 'REGULAR CARD SIZE' },
   { key: 'size16', n: '16', label: 'COMPACT', desc: 'Smaller layout • saves paper', caption: '16 cards/page' },
-  { key: 'size25', n: '25', label: 'MINI', desc: 'Most compact • maximum efficiency', caption: '25 cards/page' },
+  { key: 'size25', n: '25', label: 'EXTRA COMPACT', desc: 'Most compact • maximum efficiency', caption: '25 cards/page' },
 ];
 
 function drawSizeGuide(ctx, brand, product, images, watermark) {
@@ -1413,12 +1413,13 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   wrapText(ctx, 'All 3 placeholder layouts are included — print only the version you want.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Three size cards ----
+  // ---- Three size cards — the layout previews are the main selling
+  // point, so they're sized up from the original 560px image height. ----
   const cardsTop = 560;
-  const cardGap = 40;
+  const cardGap = 28;
   const cardW = (contentW - cardGap * 2) / 3;
-  const cardH = 1000;
-  const pad = 28;
+  const cardH = 1070;
+  const pad = 20;
 
   SIZE_GUIDE_CARDS.forEach((opt, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1445,7 +1446,27 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     ctx.font = `500 25px "${brand.font}"`;
     ctx.fillText(opt.desc, cx, cardsTop + 200);
 
-    const imgX = cardX + pad, imgY = cardsTop + 244, imgW = cardW - pad * 2, imgH = 560;
+    // A small accent badge for the size that matches a standard trading
+    // card — a real benefit worth calling out, since the other two sizes
+    // are shrunk layouts. Sits in the existing gap above the image so it
+    // never shifts the image grid out of alignment across the 3 cards.
+    if (opt.accentBadge) {
+      ctx.font = `700 17px "${brand.font}"`;
+      const accentTextW = ctx.measureText(opt.accentBadge).width;
+      const accentPadX = 12, accentH = 28;
+      const accentW = accentTextW + accentPadX * 2;
+      const accentCy = cardsTop + 231;
+      ctx.fillStyle = brand.primaryColor;
+      ctx.globalAlpha = 0.15;
+      roundRect(ctx, cx - accentW / 2, accentCy - accentH / 2, accentW, accentH, accentH / 2);
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = brand.primaryColor;
+      ctx.textAlign = 'center';
+      ctx.fillText(opt.accentBadge, cx, accentCy + 6);
+    }
+
+    const imgX = cardX + pad, imgY = cardsTop + 256, imgW = cardW - pad * 2, imgH = 630;
     ctx.save();
     roundRect(ctx, imgX, imgY, imgW, imgH, 12);
     ctx.clip();
