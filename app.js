@@ -115,7 +115,6 @@ const els = {
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
   bullets: document.getElementById('bullets'),
-  howItWorks: document.getElementById('howItWorks'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
@@ -491,13 +490,13 @@ function syncBadgeVisibility() {
 }
 
 // =========================================================================
-// Per-product-type content — Tagline, What's Included, How It Works, and
-// Badges are remembered per Product Type rather than per brand profile,
-// since the same kind of listing tends to reuse the same wording/badges
-// regardless of which shop it's for.
+// Per-product-type content — Tagline, What's Included, and Badges are
+// remembered per Product Type rather than per brand profile, since the
+// same kind of listing tends to reuse the same wording/badges regardless
+// of which shop it's for.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
-const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', howItWorks: '', customBadge: '', badges: ['Instant Download'] };
+const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', customBadge: '', badges: ['Instant Download'] };
 
 function loadTypeContent() {
   try {
@@ -526,7 +525,6 @@ function saveCurrentFieldsToType() {
   typeContent[els.productType.value] = {
     tagline: els.tagline.value,
     bullets: els.bullets.value,
-    howItWorks: els.howItWorks.value,
     customBadge: els.customBadge.value,
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
   };
@@ -539,7 +537,6 @@ function applyTypeContent(type) {
   suppressTypeContentSave = true;
   els.tagline.value = saved.tagline || '';
   els.bullets.value = saved.bullets || '';
-  els.howItWorks.value = saved.howItWorks || '';
   els.customBadge.value = saved.customBadge || '';
   const checkedSet = new Set(saved.badges || []);
   els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -557,7 +554,7 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.bullets, els.howItWorks, els.customBadge].forEach(el => {
+[els.tagline, els.bullets, els.customBadge].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -567,7 +564,7 @@ els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/What's Included/How It Works/Badges for "${label}"?`)) return;
+  if (!confirm(`Clear saved Tagline/What's Included/Badges for "${label}"?`)) return;
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
@@ -953,7 +950,6 @@ function getProduct() {
     subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
     bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
-    howItWorks: els.howItWorks.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
   };
 }
