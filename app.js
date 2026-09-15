@@ -3,6 +3,8 @@ const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
 const THEME_KEY = 'etsyImageMaker.theme';
 const WATERMARK_SECTION_OPEN_KEY = 'etsyImageMaker.watermarkSectionOpen';
+const PRODUCT_NAME_HISTORY_KEY = 'etsyImageMaker.productNameHistory';
+const PRODUCT_NAME_HISTORY_MAX = 30;
 
 // Two fixed color schemes for now, in place of a full custom color picker.
 const COLOR_SCHEME_KEY = 'etsyImageMaker.colorScheme';
@@ -100,6 +102,8 @@ const els = {
   checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
   checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
   productName: document.getElementById('productName'),
+  productNameHistory: document.getElementById('productNameHistory'),
+  clearProductNameHistoryBtn: document.getElementById('clearProductNameHistoryBtn'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
@@ -512,6 +516,62 @@ els.clearTypeContentBtn.addEventListener('click', () => {
   updateTypeContentStatus();
   setStatus('Cleared saved content for this type.');
 });
+
+// =========================================================================
+// Product Name history — Product Name has no sensible "default" to save
+// per profile or per type (unlike Tagline/Badges/etc.), since it's usually
+// different for every listing. Instead, remember every name that's ever
+// been used to generate images so a new listing that follows the same
+// naming pattern (e.g. "{Artist} Illustrator {Set} TCG") can be picked from
+// a list and tweaked, rather than retyped from scratch each time.
+function loadProductNameHistory() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PRODUCT_NAME_HISTORY_KEY) || '[]');
+    return Array.isArray(raw) ? raw.filter(v => typeof v === 'string') : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveProductNameHistory(list) {
+  try { localStorage.setItem(PRODUCT_NAME_HISTORY_KEY, JSON.stringify(list)); } catch (e) { /* ignore */ }
+}
+
+let productNameHistory = loadProductNameHistory();
+
+function renderProductNameHistory() {
+  const current = els.productNameHistory.value;
+  els.productNameHistory.innerHTML = '<option value="">Reuse a previous name…</option>' +
+    productNameHistory.map(name => `<option value="${name.replace(/"/g, '&quot;')}">${name}</option>`).join('');
+  els.productNameHistory.value = productNameHistory.includes(current) ? current : '';
+}
+
+function rememberProductName(name) {
+  name = name.trim();
+  if (!name) return;
+  const existingIndex = productNameHistory.findIndex(n => n.toLowerCase() === name.toLowerCase());
+  if (existingIndex !== -1) productNameHistory.splice(existingIndex, 1);
+  productNameHistory.unshift(name);
+  if (productNameHistory.length > PRODUCT_NAME_HISTORY_MAX) productNameHistory.length = PRODUCT_NAME_HISTORY_MAX;
+  saveProductNameHistory(productNameHistory);
+  renderProductNameHistory();
+}
+
+els.productNameHistory.addEventListener('change', () => {
+  if (!els.productNameHistory.value) return;
+  els.productName.value = els.productNameHistory.value;
+  els.productName.focus();
+});
+
+els.clearProductNameHistoryBtn.addEventListener('click', () => {
+  if (!productNameHistory.length) return;
+  if (!confirm('Clear the list of previously used product names? This can\'t be undone.')) return;
+  productNameHistory = [];
+  saveProductNameHistory(productNameHistory);
+  renderProductNameHistory();
+});
+
+renderProductNameHistory();
 
 // Apply whatever's saved (or the sensible defaults) for the initially-selected type.
 syncGradeSubjectVisibility();
@@ -2241,6 +2301,7 @@ els.form.addEventListener('submit', async e => {
 
   const brand = getBrand();
   const product = getProduct();
+  rememberProductName(product.name);
   await ensureFont(brand.font);
 
   const watermark = getWatermarkConfig(brand);

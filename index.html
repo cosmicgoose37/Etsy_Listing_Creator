@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789438361" />
+<link rel="stylesheet" href="style.css?v=1789439097" />
 </head>
 <body>
 <header class="topbar">
@@ -94,9 +94,14 @@
           <button type="button" id="clearTypeContentBtn" class="link-btn">clear saved content for this type</button>
         </div>
 
-        <label>Product Name
-          <input type="text" id="productName" placeholder="e.g. Minimalist Budget Planner" required />
-        </label>
+        <label>Product Name</label>
+        <div class="profile-row">
+          <select id="productNameHistory" autocomplete="off">
+            <option value="">Reuse a previous name…</option>
+          </select>
+          <button type="button" id="clearProductNameHistoryBtn" class="link-btn">clear list</button>
+        </div>
+        <input type="text" id="productName" class="field-spaced" placeholder="e.g. Minimalist Budget Planner" required />
 
         <div class="two-col" id="gradeSubjectRow" hidden>
           <label>Grade Level <span class="hint">(optional)</span>
@@ -245,6 +250,6 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789438361"></script>
+<script src="app.js?v=1789439097"></script>
 </body>
 </html>

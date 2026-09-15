@@ -309,6 +309,11 @@ input[type="range"] {
   margin-bottom: 16px;
 }
 
+/* For a standalone input/select/textarea that isn't wrapped in its own
+   <label> (e.g. because a helper row sits between the label and the field),
+   restoring the bottom margin a wrapping label would normally provide. */
+.field-spaced { margin-bottom: 16px; }
+
 .color-scheme-row {
   display: flex;
   gap: 10px;
