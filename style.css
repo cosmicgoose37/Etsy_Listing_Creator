@@ -316,6 +316,7 @@ input[type="range"] {
 
 .color-scheme-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 6px;
   margin-bottom: 16px;

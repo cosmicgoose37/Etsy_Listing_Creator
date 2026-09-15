@@ -6,11 +6,13 @@ const WATERMARK_SECTION_OPEN_KEY = 'etsyImageMaker.watermarkSectionOpen';
 const PRODUCT_NAME_HISTORY_KEY = 'etsyImageMaker.productNameHistory';
 const PRODUCT_NAME_HISTORY_MAX = 30;
 
-// Two fixed color schemes for now, in place of a full custom color picker.
+// Four fixed color schemes for now, in place of a full custom color picker.
 const COLOR_SCHEME_KEY = 'etsyImageMaker.colorScheme';
 const COLOR_SCHEMES = [
   { id: 'orange', name: 'Orange', primary: '#c96b4f', accent: '#f4e9dd' },
   { id: 'teal', name: 'Dark Teal', primary: '#1f5f58', accent: '#e7f2f0' },
+  { id: 'plum', name: 'Plum', primary: '#7d3b60', accent: '#f7ebf1' },
+  { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
 ];
 
 // =========================================================================
