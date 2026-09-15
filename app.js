@@ -1150,8 +1150,16 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   const contentW = SIZE - margin * 2;
 
   // ---- Header — leaves clearance for the corner badge so a long shop
-  // name can never run underneath it. ----
-  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  // name can never run underneath it. Badge height is derived from its own
+  // wrapped title so "Instant access" always gets a clear gap beneath it,
+  // rather than a fixed offset that goes cramped whenever the title wraps
+  // to two lines. ----
+  const badgeW = 380, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46;
+  ctx.font = `700 40px "${brand.font}"`;
+  const badgeTitleLines = wrapLines(ctx, 'DIGITAL DOWNLOAD', badgeW - badgePadX * 2);
+  const badgeSubY = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 58;
+  const badgeH = badgeSubY + 38;
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
@@ -1177,11 +1185,11 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'left';
-  wrapText(ctx, 'DIGITAL DOWNLOAD', badgeX + 36, badgeY + 66, badgeW - 72, 46, 'left');
+  badgeTitleLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeTitleTop + i * badgeTitleLineH));
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.75;
   ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Instant access', badgeX + 36, badgeY + 136);
+  ctx.fillText('Instant access', badgeX + badgePadX, badgeY + badgeSubY);
   ctx.globalAlpha = 1;
 
   // ---- Title (fixed) ----
@@ -1202,13 +1210,14 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   }).bottom;
   ctx.globalAlpha = 1;
 
-  // ---- Three preview cards ----
+  // ---- Three preview cards — sized up from the original 0.72 image ratio
+  // so the previews stay legible at Etsy's small/mobile thumbnail size. ----
   const cardsTop = Math.max(560, subtitleBottom + 40);
-  const cardGap = 40;
+  const cardGap = 28;
   const cardW = (contentW - cardGap * 2) / 3;
-  const cardH = 640;
-  const pad = 28;
-  const imgH = cardH * 0.72;
+  const cardH = 700;
+  const pad = 22;
+  const imgH = cardH * 0.75;
 
   SHOWCASE_CARDS.forEach((card, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1321,13 +1330,13 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   SHOWCASE_FILE_INVENTORY.forEach((item, i) => {
     const cy = itemsTop + i * itemGap + iconR;
     ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.14;
+    ctx.globalAlpha = 0.22;
     ctx.beginPath();
     ctx.arc(rightX + iconR, cy, iconR, 0, Math.PI * 2);
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.strokeStyle = brand.primaryColor;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4.5;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.beginPath();
@@ -1337,7 +1346,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.stroke();
 
     ctx.fillStyle = textColor;
-    ctx.font = `600 32px "${brand.font}"`;
+    ctx.font = `700 32px "${brand.font}"`;
     ctx.textAlign = 'left';
     ctx.fillText(item, itemTextX, cy + 11, itemTextMaxW);
   });
