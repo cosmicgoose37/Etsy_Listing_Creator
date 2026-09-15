@@ -216,6 +216,22 @@ function loadProfilesState() {
 
 let profilesState = loadProfilesState();
 
+// One-time seed: make "CurrentTrove" available as a selectable Brand
+// profile. Purely additive — never renames or overwrites a profile the
+// user has already set up. If the only profile that exists is still the
+// pristine, untouched default (blank Shop Name), switch to the new one so
+// it's immediately usable instead of requiring a manual selection first.
+if (!profilesState.profiles.some(p => p.name === 'CurrentTrove')) {
+  const wasUntouchedDefault = profilesState.profiles.length === 1 &&
+    profilesState.profiles[0].name === 'My Shop' &&
+    !profilesState.profiles[0].companyName;
+  const currentTroveProfile = defaultProfile('CurrentTrove');
+  currentTroveProfile.companyName = 'CurrentTrove';
+  profilesState.profiles.push(currentTroveProfile);
+  if (wasUntouchedDefault) profilesState.activeId = currentTroveProfile.id;
+  saveProfilesState();
+}
+
 function saveProfilesState() {
   localStorage.setItem(PROFILES_STORAGE_KEY, JSON.stringify(profilesState));
 }
