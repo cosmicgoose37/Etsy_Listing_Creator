@@ -2107,11 +2107,10 @@ function getDownloadReadySteps() {
   const zipCount = ZIP_FILE_COUNT;
   const zipPhrase = zipCount === 1 ? `the downloaded ${zipFileWord(zipCount)}` : `all ${zipCount} downloaded ${zipFileWord(zipCount)}`;
   return [
-    { n: '1', heading: 'PURCHASE', desc: 'Complete your Etsy order.' },
-    { n: '2', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
-    { n: '3', heading: 'UNZIP', desc: `Open ${zipPhrase}.` },
-    { n: '4', heading: 'CHOOSE YOUR FILES', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
-    { n: '5', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
+    { n: '1', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
+    { n: '2', heading: 'UNZIP', desc: `Open ${zipPhrase}.` },
+    { n: '3', heading: 'CHOOSE VERSION', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
+    { n: '4', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
   ];
 }
 
@@ -2151,14 +2150,16 @@ function drawDownloadReady(ctx, brand, product) {
   wrapText(ctx, 'What happens after you purchase.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Five stacked step rows, connected by arrows ----
+  // ---- Four stacked step rows, connected by arrows — shorter than the
+  // original 160px and with larger text, since 2 short lines of copy in a
+  // 5-step flow left each row looking mostly empty. ----
   const rowsTop = 560;
-  const rowH = 160;
-  const rowGap = 40;
-  const circleR = 40;
-  const circleCx = margin + 70;
-  const textX = margin + 150;
-  const textMaxW = contentW - 190;
+  const rowH = 130;
+  const rowGap = 50;
+  const circleR = 46;
+  const circleCx = margin + 78;
+  const textX = margin + 166;
+  const textMaxW = contentW - 206;
 
   DOWNLOAD_READY_STEPS.forEach((step, i) => {
     const rowTop = rowsTop + i * (rowH + rowGap);
@@ -2179,19 +2180,19 @@ function drawDownloadReady(ctx, brand, product) {
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = brand.primaryColor;
-    ctx.font = `700 34px "${brand.font}"`;
+    ctx.font = `700 38px "${brand.font}"`;
     ctx.textAlign = 'center';
-    ctx.fillText(step.n, circleCx, cy + 12);
+    ctx.fillText(step.n, circleCx, cy + 13);
 
     ctx.fillStyle = '#1f1b17';
-    ctx.font = `700 30px "${brand.font}"`;
+    ctx.font = `700 33px "${brand.font}"`;
     ctx.textAlign = 'left';
-    ctx.fillText(step.heading, textX, cy - 12);
+    ctx.fillText(step.heading, textX, cy - 13);
 
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.75;
-    ctx.font = `500 24px "${brand.font}"`;
-    wrapText(ctx, step.desc, textX, cy + 26, textMaxW, 30, 'left');
+    ctx.font = `500 27px "${brand.font}"`;
+    wrapText(ctx, step.desc, textX, cy + 28, textMaxW, 33, 'left');
     ctx.globalAlpha = 1;
 
     if (i < DOWNLOAD_READY_STEPS.length - 1) {
@@ -2208,9 +2209,11 @@ function drawDownloadReady(ctx, brand, product) {
     }
   });
 
-  // ---- Highlighted note box ----
-  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 50;
-  const boxH = 170;
+  // ---- Highlighted note box — taller and with more clearance above it
+  // than before, so it reads as a deliberate closing callout rather than
+  // leaving a gap where the dropped "Purchase" step used to be. ----
+  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 160;
+  const boxH = 230;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -2218,14 +2221,14 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = '#1f1b17';
-  ctx.font = `700 38px "${brand.font}"`;
+  ctx.font = `700 44px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 64);
+  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 92);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
-  ctx.font = `500 26px "${brand.font}"`;
-  ctx.fillText('You do not need to print every file — just choose the version you want.', SIZE / 2, boxTop + 112);
+  ctx.font = `500 30px "${brand.font}"`;
+  ctx.fillText('You do not need to print every file — just choose the version you want.', SIZE / 2, boxTop + 150);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
