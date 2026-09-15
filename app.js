@@ -1955,23 +1955,26 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.fillStyle = textColor;
   ctx.font = `700 84px "${brand.font}"`;
   ctx.textAlign = 'left';
-  ctx.fillText('Track Your Collection', margin, 250);
-  ctx.fillText('Your Way', margin, 340);
+  ctx.fillText('Fillable PDF', margin, 250);
+  ctx.fillText('Collection Checklist', margin, 340);
 
   // ---- Subtitle (fixed) ----
   ctx.globalAlpha = 0.7;
   ctx.font = `500 38px "${brand.font}"`;
-  wrapText(ctx, 'Use the included checklist digitally or print it and track by hand.', margin, 416, contentW, 48, 'left');
+  wrapText(ctx, 'Track digitally or print it.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Large checklist preview image ----
-  const imgTop = 560, imgH = 560;
+  // ---- Large, zoomed-in checklist preview — cropped to fill the box
+  // (rather than letterboxed to show the whole page) so buyers can
+  // actually see checked and unchecked boxes, not a shrunk-down thumbnail
+  // of the entire sheet. ----
+  const imgTop = 560, imgH = 600;
   ctx.save();
   roundRect(ctx, margin, imgTop, contentW, imgH, 18);
   ctx.clip();
   const img = images.checklist;
   if (img) {
-    drawContain(ctx, margin, imgTop, contentW, imgH, img);
+    drawCover(ctx, margin, imgTop, contentW, imgH, img);
   } else {
     ctx.fillStyle = '#f1ece4';
     ctx.fillRect(margin, imgTop, contentW, imgH);
