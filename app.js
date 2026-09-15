@@ -1735,8 +1735,14 @@ function drawEasySteps(ctx, brand, product) {
   const contentW = SIZE - margin * 2;
 
   // ---- Header — leaves clearance for the corner badge so a long shop
-  // name can never run underneath it. ----
-  const badgeW = 380, badgeH = 172, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  // name can never run underneath it. Badge height is derived from its own
+  // wrapped title so the subtext always gets a clear gap beneath it. ----
+  const badgeW = 380, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46;
+  ctx.font = `700 40px "${brand.font}"`;
+  const badgeTitleLines = wrapLines(ctx, 'PRINT TIP', badgeW - badgePadX * 2);
+  const badgeSubY = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 58;
+  const badgeH = badgeSubY + 38;
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
@@ -1753,7 +1759,9 @@ function drawEasySteps(ctx, brand, product) {
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // ---- "Instant Download" badge, top right ----
+  // ---- "Print Tip" badge, top right — keeps this image entirely focused
+  // on usage instead of repeating the download message already covered
+  // elsewhere in the listing. ----
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
@@ -1762,11 +1770,11 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'left';
-  wrapText(ctx, 'INSTANT DOWNLOAD', badgeX + 36, badgeY + 66, badgeW - 72, 46, 'left');
+  badgeTitleLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeTitleTop + i * badgeTitleLineH));
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.75;
   ctx.font = `500 28px "${brand.font}"`;
-  ctx.fillText('Unzip → choose → print', badgeX + 36, badgeY + 136);
+  ctx.fillText('100% / Actual Size', badgeX + badgePadX, badgeY + badgeSubY);
   ctx.globalAlpha = 1;
 
   // ---- Title (fixed) ----
@@ -1782,14 +1790,18 @@ function drawEasySteps(ctx, brand, product) {
   wrapText(ctx, 'Everything you need to start using your placeholder set right away.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Three step cards ----
-  const cardsTop = 560;
+  // ---- Three step cards — shorter than the original 700px, and with
+  // larger body text, since the instructions only filled about half of
+  // that height and left the rest as dead space. Some of the height saved
+  // here goes to a bit more breathing room above and below, so it doesn't
+  // just pile up as empty space before the footer instead. ----
+  const cardsTop = 600;
   const cardGap = 40;
   const cardW = (contentW - cardGap * 2) / 3;
-  const cardH = 700;
+  const cardH = 570;
   const pad = 44;
   const circleR = 54;
-  const bulletSlotH = 90;
+  const bulletSlotH = 92;
 
   EASY_STEPS_CARDS.forEach((card, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1817,7 +1829,7 @@ function drawEasySteps(ctx, brand, product) {
 
     const headingY = circleCy + circleR + 66;
     ctx.fillStyle = '#1f1b17';
-    ctx.font = `700 32px "${brand.font}"`;
+    ctx.font = `700 34px "${brand.font}"`;
     ctx.fillText(card.heading, cx, headingY);
 
     const ruleY = headingY + 26;
@@ -1844,14 +1856,15 @@ function drawEasySteps(ctx, brand, product) {
 
       ctx.fillStyle = textColor;
       fitLines(ctx, bullet, textX, by, {
-        maxWidth: textMaxW, maxLines: 2, startSize: 26, minSize: 18, step: 2, weight: 500, family: brand.font, label: 'List item',
+        maxWidth: textMaxW, maxLines: 2, startSize: 29, minSize: 19, step: 2, weight: 500, family: brand.font, label: 'List item',
       });
     });
   });
 
-  // ---- Highlighted note box ----
-  const boxTop = cardsTop + cardH + 50;
-  const boxH = 320;
+  // ---- Highlighted note box — taller and with more top clearance than
+  // before, absorbing the height freed up by the shorter step cards above. ----
+  const boxTop = cardsTop + cardH + 90;
+  const boxH = 370;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -1861,18 +1874,18 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillStyle = '#1f1b17';
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 100);
+  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 135);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.75;
   ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Replace each placeholder with the real card as your binder grows.', SIZE / 2, boxTop + 160);
+  ctx.fillText('Replace each placeholder with the real card as your binder grows.', SIZE / 2, boxTop + 195);
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.6;
   ctx.font = `500 26px "${brand.font}"`;
-  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 220);
+  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 255);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
