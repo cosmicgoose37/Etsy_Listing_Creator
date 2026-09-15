@@ -1,4 +1,9 @@
 const SIZE = 2000;
+
+if (window.pdfjsLib) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
 const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
 const THEME_KEY = 'etsyImageMaker.theme';
@@ -396,20 +401,56 @@ function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
 }
 
+function isPdfFile(file) {
+  return file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+}
+
+// Renders page 1 of a PDF to a PNG data URL at a resolution large enough for
+// the 2000x2000 exports, without ever upscaling past the page's own size.
+async function renderPdfFirstPageToDataUrl(file) {
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const page = await pdf.getPage(1);
+  const unscaled = page.getViewport({ scale: 1 });
+  const targetPx = 1800;
+  const scale = Math.min(3, targetPx / Math.max(unscaled.width, unscaled.height));
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+  return canvas.toDataURL('image/png');
+}
+
+function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl) {
+  const img = new Image();
+  img.onload = () => {
+    checklistImages[key] = img;
+    previewEl.innerHTML = `<img src="${dataUrl}" alt="" />`;
+    statusEl.textContent = '— uploaded';
+  };
+  img.src = dataUrl;
+}
+
 function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
-  inputEl.addEventListener('change', () => {
+  inputEl.addEventListener('change', async () => {
     const file = inputEl.files[0];
     if (!file) return;
+
+    if (isPdfFile(file)) {
+      statusEl.textContent = '— rendering PDF page 1…';
+      try {
+        const dataUrl = await renderPdfFirstPageToDataUrl(file);
+        loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
+      } catch (e) {
+        statusEl.textContent = '— required';
+        alert('Could not read that PDF. Please try a different file, or upload an image screenshot instead.');
+      }
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = () => {
-      const img = new Image();
-      img.onload = () => {
-        checklistImages[key] = img;
-        previewEl.innerHTML = `<img src="${reader.result}" alt="" />`;
-        statusEl.textContent = '— uploaded';
-      };
-      img.src = reader.result;
-    };
+    reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
     reader.readAsDataURL(file);
   });
 }

@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789440730" />
+<link rel="stylesheet" href="style.css?v=1789441267" />
 </head>
 <body>
 <header class="topbar">
@@ -156,35 +156,35 @@ Enjoy!"></textarea>
 
       <section class="field-group" id="checklistImagesSection" hidden>
         <h2>Preview Images <span class="hint">required for this product type</span></h2>
-        <p class="hint">These build all 7 listing images automatically (some images are reused across multiple listing images), alongside your product name and shop name.</p>
+        <p class="hint">These build all 7 listing images automatically (some images are reused across multiple listing images), alongside your product name and shop name. You can drop the actual PDF here instead of a screenshot — the first page is rendered automatically as the preview.</p>
 
         <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
-          <input type="file" accept="image/*" id="checklistImgChecklist" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgChecklist" />
         </label>
         <div class="logo-preview" id="checklistImgChecklistPreview"></div>
 
         <label>Color Placeholders Preview <span class="hint" id="checklistImgColorStatus">— required</span>
-          <input type="file" accept="image/*" id="checklistImgColor" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgColor" />
         </label>
         <div class="logo-preview" id="checklistImgColorPreview"></div>
 
         <label>Greyscale Placeholders Preview <span class="hint" id="checklistImgGreyStatus">— required</span>
-          <input type="file" accept="image/*" id="checklistImgGrey" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgGrey" />
         </label>
         <div class="logo-preview" id="checklistImgGreyPreview"></div>
 
         <label>9 Cards/Page Layout Preview <span class="hint" id="checklistImgSize9Status">— required</span>
-          <input type="file" accept="image/*" id="checklistImgSize9" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgSize9" />
         </label>
         <div class="logo-preview" id="checklistImgSize9Preview"></div>
 
         <label>16 Cards/Page Layout Preview <span class="hint" id="checklistImgSize16Status">— required</span>
-          <input type="file" accept="image/*" id="checklistImgSize16" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgSize16" />
         </label>
         <div class="logo-preview" id="checklistImgSize16Preview"></div>
 
         <label>25 Cards/Page Layout Preview <span class="hint" id="checklistImgSize25Status">— required</span>
-          <input type="file" accept="image/*" id="checklistImgSize25" />
+          <input type="file" accept="image/*,application/pdf" id="checklistImgSize25" />
         </label>
         <div class="logo-preview" id="checklistImgSize25Preview"></div>
       </section>
@@ -258,6 +258,7 @@ Enjoy!"></textarea>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-<script src="app.js?v=1789440730"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="app.js?v=1789441267"></script>
 </body>
 </html>
