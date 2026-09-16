@@ -1089,7 +1089,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   // ---- Small checklist preview, overlapping the placeholder image's
   // corner — makes it immediately clear this is a bundle, not one image.
   if (images.checklist) {
-    const thumbW = 420, thumbH = 420, thumbPad = 14;
+    const thumbW = 480, thumbH = 480, thumbPad = 16;
     const thumbX = margin + 50;
     const thumbY = Math.max(imgTop + 20, imgBottom - thumbH - 50);
 
