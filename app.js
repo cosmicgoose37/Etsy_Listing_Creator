@@ -1114,7 +1114,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     ctx.save();
     roundRect(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, 10);
     ctx.clip();
-    drawContain(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, images.checklist);
+    drawCover(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, images.checklist);
     if (watermark) {
       drawWatermark(ctx, watermark.text, watermark, {
         x: thumbX + thumbPad, y: thumbY + thumbPad, w: thumbW - thumbPad * 2, h: thumbH - thumbPad * 2,
@@ -1237,7 +1237,14 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[card.key];
     if (img) {
-      drawContain(ctx, imgX, imgY, imgW, imgH, img);
+      // The checklist screenshot tends to have a lot of white margin
+      // around it, which looked like empty space at this card size —
+      // crop-to-fill instead of letterboxing so it actually reads.
+      if (card.key === 'checklist') {
+        drawCover(ctx, imgX, imgY, imgW, imgH, img);
+      } else {
+        drawContain(ctx, imgX, imgY, imgW, imgH, img);
+      }
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
