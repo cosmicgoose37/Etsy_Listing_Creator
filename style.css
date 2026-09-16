@@ -213,6 +213,7 @@ label {
 .hint { font-weight: 400; color: var(--muted); font-size: 11.5px; }
 
 input[type="text"],
+input[type="number"],
 input[type="file"],
 select,
 textarea {
@@ -228,6 +229,7 @@ textarea {
   color: var(--ink);
 }
 textarea { resize: vertical; }
+input.field-narrow { width: 90px; }
 
 input[type="color"] {
   margin-top: 6px;

@@ -23,12 +23,15 @@ const COLOR_SCHEMES = [
 // =========================================================================
 // Shared product-data facts — every template pulls wording from here so the
 // same claim (page sizes, digital-only status, ZIP count) can't drift into
-// inconsistent copy across the 7 listing images.
+// inconsistent copy across the 7 listing images. ZIP count is the one fact
+// that varies per seller (some bundle everything into one ZIP, others split
+// across several), so it comes from the "Number of ZIP files" field rather
+// than being fixed here.
 // =========================================================================
 const PLACEHOLDER_SIZES = [9, 16, 25];
 const PLACEHOLDER_SIZES_LIST = PLACEHOLDER_SIZES.join(', ').replace(/, ([^,]*)$/, ' or $1');
 const IS_DIGITAL_PRODUCT = true;
-const ZIP_FILE_COUNT = 1;
+const DEFAULT_ZIP_FILE_COUNT = 1;
 const DIGITAL_DISCLAIMER = 'Digital product only • No physical item will be shipped';
 
 function zipFileWord(count) {
@@ -119,6 +122,7 @@ const els = {
   typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
   customBadge: document.getElementById('customBadge'),
+  zipFileCount: document.getElementById('zipFileCount'),
   gallery: document.getElementById('gallery'),
   emptyState: document.getElementById('emptyState'),
   validationWarnings: document.getElementById('validationWarnings'),
@@ -496,7 +500,7 @@ function syncBadgeVisibility() {
 // of which shop it's for.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
-const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', customBadge: '', badges: ['Instant Download'] };
+const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', customBadge: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
 
 function loadTypeContent() {
   try {
@@ -527,6 +531,7 @@ function saveCurrentFieldsToType() {
     bullets: els.bullets.value,
     customBadge: els.customBadge.value,
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
+    zipFileCount: els.zipFileCount.value,
   };
   saveTypeContentState();
   updateTypeContentStatus();
@@ -538,6 +543,7 @@ function applyTypeContent(type) {
   els.tagline.value = saved.tagline || '';
   els.bullets.value = saved.bullets || '';
   els.customBadge.value = saved.customBadge || '';
+  els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
   const checkedSet = new Set(saved.badges || []);
   els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = checkedSet.has(cb.value);
@@ -554,7 +560,7 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.bullets, els.customBadge].forEach(el => {
+[els.tagline, els.bullets, els.customBadge, els.zipFileCount].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -564,7 +570,7 @@ els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/What's Included/Badges for "${label}"?`)) return;
+  if (!confirm(`Clear saved Tagline/What's Included/Badges/ZIP count for "${label}"?`)) return;
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
@@ -951,6 +957,7 @@ function getProduct() {
     tagline: els.tagline.value.trim(),
     bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
+    zipFileCount: Math.max(1, parseInt(els.zipFileCount.value, 10) || DEFAULT_ZIP_FILE_COUNT),
   };
 }
 
@@ -2096,13 +2103,12 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
-// "How to Access Your Download" guide — entirely fixed (no images, no
-// product-specific text), the last of the 7 listing images. Always the same
+// "How to Access Your Download" guide — entirely fixed (no images) except
+// for the ZIP step, the last of the 7 listing images. Always the same
 // post-purchase walkthrough regardless of which product this happens to be.
 // A function rather than a plain constant so the ZIP step can pluralize
-// correctly if zip_file_count is ever more than 1.
-function getDownloadReadySteps() {
-  const zipCount = ZIP_FILE_COUNT;
+// correctly based on the seller's own "Number of ZIP files" setting.
+function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
   const zipPhrase = zipCount === 1 ? `the downloaded ${zipFileWord(zipCount)}` : `all ${zipCount} downloaded ${zipFileWord(zipCount)}`;
   return [
     { n: '1', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
@@ -2113,7 +2119,7 @@ function getDownloadReadySteps() {
 }
 
 function drawDownloadReady(ctx, brand, product) {
-  const DOWNLOAD_READY_STEPS = getDownloadReadySteps();
+  const DOWNLOAD_READY_STEPS = getDownloadReadySteps(product.zipFileCount);
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = contrastText(brand.accentColor);
@@ -2189,8 +2195,8 @@ function drawDownloadReady(ctx, brand, product) {
 
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.75;
-    ctx.font = `500 27px "${brand.font}"`;
-    wrapText(ctx, step.desc, textX, cy + 28, textMaxW, 33, 'left');
+    ctx.font = `500 30px "${brand.font}"`;
+    wrapText(ctx, step.desc, textX, cy + 28, textMaxW, 36, 'left');
     ctx.globalAlpha = 1;
 
     if (i < DOWNLOAD_READY_STEPS.length - 1) {

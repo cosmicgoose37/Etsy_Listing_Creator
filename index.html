@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789535079" />
+<link rel="stylesheet" href="style.css?v=1789535632" />
 </head>
 <body>
 <header class="topbar">
@@ -145,6 +145,10 @@ Instant Digital Download"></textarea>
         <label>Custom badge <span class="hint">(optional)</span>
           <input type="text" id="customBadge" placeholder="e.g. Made in the USA" />
         </label>
+
+        <label>Number of ZIP files <span class="hint">(how your Etsy download is packaged)</span>
+          <input type="number" id="zipFileCount" min="1" step="1" value="1" class="field-narrow" />
+        </label>
       </section>
 
       <section class="field-group" id="checklistImagesSection" hidden>
@@ -252,6 +256,6 @@ Instant Digital Download"></textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1789535079"></script>
+<script src="app.js?v=1789535632"></script>
 </body>
 </html>
