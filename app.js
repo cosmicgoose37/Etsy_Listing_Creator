@@ -1151,15 +1151,14 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 
   // ---- Header — leaves clearance for the corner badge so a long shop
   // name can never run underneath it. Badge height is derived from its own
-  // wrapped title so "Instant access" always gets a clear gap beneath it,
-  // rather than a fixed offset that goes cramped whenever the title wraps
-  // to two lines. ----
+  // wrapped title, since it's now the only thing inside — the "Instant
+  // access" subtext was dropped because it read as illegible clutter at
+  // Etsy's thumbnail size. ----
   const badgeW = 380, badgeX = SIZE - margin - badgeW, badgeY = 56;
   const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46;
   ctx.font = `700 40px "${brand.font}"`;
   const badgeTitleLines = wrapLines(ctx, 'DIGITAL DOWNLOAD', badgeW - badgePadX * 2);
-  const badgeSubY = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 58;
-  const badgeH = badgeSubY + 38;
+  const badgeH = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 40;
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
@@ -1186,11 +1185,6 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'left';
   badgeTitleLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeTitleTop + i * badgeTitleLineH));
-  ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.75;
-  ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Instant access', badgeX + badgePadX, badgeY + badgeSubY);
-  ctx.globalAlpha = 1;
 
   // ---- Title (fixed) ----
   ctx.fillStyle = textColor;
@@ -1216,8 +1210,8 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   const cardGap = 28;
   const cardW = (contentW - cardGap * 2) / 3;
   const cardH = 700;
-  const pad = 22;
-  const imgH = cardH * 0.75;
+  const pad = 16;
+  const imgH = cardH * 0.78;
 
   SHOWCASE_CARDS.forEach((card, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1248,12 +1242,12 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.fillStyle = '#1f1b17';
     ctx.font = `700 42px "${brand.font}"`;
     ctx.textAlign = 'left';
-    const titleY = imgY + imgH + 56;
+    const titleY = imgY + imgH + 42;
     ctx.fillText(card.title, imgX, titleY);
 
     ctx.fillStyle = '#6b6259';
     ctx.font = `500 28px "${brand.font}"`;
-    ctx.fillText(card.desc, imgX, titleY + 40);
+    ctx.fillText(card.desc, imgX, titleY + 36);
   });
 
   // ---- Bottom info box: sizes + how-to-use, side by side ----
@@ -1446,26 +1440,6 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     ctx.font = `500 25px "${brand.font}"`;
     ctx.fillText(opt.desc, cx, cardsTop + 200);
 
-    // A small accent badge for the size that matches a standard trading
-    // card — a real benefit worth calling out, since the other two sizes
-    // are shrunk layouts. Sits in the existing gap above the image so it
-    // never shifts the image grid out of alignment across the 3 cards.
-    if (opt.accentBadge) {
-      ctx.font = `700 17px "${brand.font}"`;
-      const accentTextW = ctx.measureText(opt.accentBadge).width;
-      const accentPadX = 12, accentH = 28;
-      const accentW = accentTextW + accentPadX * 2;
-      const accentCy = cardsTop + 231;
-      ctx.fillStyle = brand.primaryColor;
-      ctx.globalAlpha = 0.15;
-      roundRect(ctx, cx - accentW / 2, accentCy - accentH / 2, accentW, accentH, accentH / 2);
-      ctx.fill();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = brand.primaryColor;
-      ctx.textAlign = 'center';
-      ctx.fillText(opt.accentBadge, cx, accentCy + 6);
-    }
-
     const imgX = cardX + pad, imgY = cardsTop + 256, imgW = cardW - pad * 2, imgH = 630;
     ctx.save();
     roundRect(ctx, imgX, imgY, imgW, imgH, 12);
@@ -1485,6 +1459,28 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     ctx.lineWidth = 2;
     roundRect(ctx, imgX, imgY, imgW, imgH, 12);
     ctx.stroke();
+
+    // A bold corner "1:1 REGULAR CARD SIZE" ribbon for the size that
+    // matches a real trading card — a genuinely useful selling point that
+    // deserves to stand out, not blend in as a subtle inline pill.
+    if (opt.accentBadge) {
+      const ribbonW = 168, ribbonH = 100, ribbonInset = 16;
+      const ribbonX = imgX + imgW - ribbonW - ribbonInset, ribbonY = imgY + ribbonInset;
+      ctx.save();
+      ctx.fillStyle = 'rgba(0,0,0,0.22)';
+      roundRect(ctx, ribbonX + 4, ribbonY + 5, ribbonW, ribbonH, 14);
+      ctx.fill();
+      ctx.restore();
+      ctx.fillStyle = brand.primaryColor;
+      roundRect(ctx, ribbonX, ribbonY, ribbonW, ribbonH, 14);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'center';
+      ctx.font = `700 34px "${brand.font}"`;
+      ctx.fillText('1:1', ribbonX + ribbonW / 2, ribbonY + 42);
+      ctx.font = `700 15px "${brand.font}"`;
+      wrapText(ctx, opt.accentBadge, ribbonX + ribbonW / 2, ribbonY + 64, ribbonW - 24, 18, 'center');
+    }
 
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.65;
@@ -1577,12 +1573,14 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   wrapText(ctx, 'Both versions are included — print whichever works best for your binder.', margin, 330, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Two print-style cards ----
+  // ---- Two print-style cards — previews enlarged from the original
+  // 610px image height (and given a bit more width) since they're the
+  // main selling point here. ----
   const cardsTop = 460;
-  const cardGap = 50;
+  const cardGap = 34;
   const cardW = (contentW - cardGap) / 2;
-  const cardH = 1000;
-  const pad = 36;
+  const cardH = 1060;
+  const pad = 20;
 
   PRINT_STYLE_CARDS.forEach((c, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1623,7 +1621,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.font = `500 26px "${brand.font}"`;
     ctx.fillText(c.subtitle, cx, cardsTop + 112);
 
-    const imgX = cardX + pad, imgY = cardsTop + 155, imgW = cardW - pad * 2, imgH = 610;
+    const imgX = cardX + pad, imgY = cardsTop + 155, imgW = cardW - pad * 2, imgH = 665;
     ctx.save();
     roundRect(ctx, imgX, imgY, imgW, imgH, 14);
     ctx.clip();
@@ -1719,7 +1717,7 @@ const EASY_STEPS_CARDS = [
   },
   {
     n: '2', heading: 'PRINT + CUT',
-    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Print at 100% — do not use Fit to Page'],
+    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Print at 100% / Actual Size — turn off Fit to Page'],
   },
   {
     n: '3', heading: 'PLACE IN BINDER',
@@ -1801,7 +1799,7 @@ function drawEasySteps(ctx, brand, product) {
   const cardH = 570;
   const pad = 44;
   const circleR = 54;
-  const bulletSlotH = 92;
+  const bulletSlotH = 96;
 
   EASY_STEPS_CARDS.forEach((card, i) => {
     const cardX = margin + i * (cardW + cardGap);
@@ -1856,7 +1854,7 @@ function drawEasySteps(ctx, brand, product) {
 
       ctx.fillStyle = textColor;
       fitLines(ctx, bullet, textX, by, {
-        maxWidth: textMaxW, maxLines: 2, startSize: 29, minSize: 19, step: 2, weight: 500, family: brand.font, label: 'List item',
+        maxWidth: textMaxW, maxLines: 2, startSize: 32, minSize: 21, step: 2, weight: 500, family: brand.font, label: 'List item',
       });
     });
   });
