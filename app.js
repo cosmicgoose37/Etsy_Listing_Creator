@@ -1079,7 +1079,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   roundRect(ctx, margin, imgTop, contentW, imgH, 16);
   ctx.clip();
   if (images.color) {
-    drawContain(ctx, margin, imgTop, contentW, imgH, images.color);
+    drawCover(ctx, margin, imgTop, contentW, imgH, images.color);
   } else {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(margin, imgTop, contentW, imgH);
