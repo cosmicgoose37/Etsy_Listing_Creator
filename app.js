@@ -2542,16 +2542,16 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
     },
     {
-      label: '3 Easy Steps',
-      key: 'easysteps',
-      include: true,
-      fn: (ctx) => drawEasySteps(ctx, brand, product),
-    },
-    {
       label: 'Track Your Collection',
       key: 'checklistguide',
       include: true,
       fn: (ctx) => drawChecklistGuide(ctx, brand, product, checklistImages, watermarkFor('checklistguide')),
+    },
+    {
+      label: '3 Easy Steps',
+      key: 'easysteps',
+      include: true,
+      fn: (ctx) => drawEasySteps(ctx, brand, product),
     },
     {
       label: 'How to Access Your Download',
