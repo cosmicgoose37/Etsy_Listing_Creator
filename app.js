@@ -11,14 +11,22 @@ const WATERMARK_SECTION_OPEN_KEY = 'etsyImageMaker.watermarkSectionOpen';
 const PRODUCT_NAME_HISTORY_KEY = 'etsyImageMaker.productNameHistory';
 const PRODUCT_NAME_HISTORY_MAX = 30;
 
-// Five fixed color schemes for now, in place of a full custom color picker.
+// Fixed accent-color options, in place of a full custom color picker. Each
+// one is just a {primary, accent} pair — a saturated brand color and its
+// pale tint — so every one of the 7 listing images updates together the
+// moment a new pair is added here; no template needs to know the palette
+// exists.
 const COLOR_SCHEME_KEY = 'etsyImageMaker.colorScheme';
 const COLOR_SCHEMES = [
-  { id: 'orange', name: 'Orange', primary: '#c96b4f', accent: '#f4e9dd' },
-  { id: 'teal', name: 'Dark Teal', primary: '#1f5f58', accent: '#e7f2f0' },
-  { id: 'plum', name: 'Plum', primary: '#7d3b60', accent: '#f7ebf1' },
+  { id: 'purple', name: 'Purple', primary: '#6c4bc3', accent: '#e8dff7' },
+  { id: 'blue', name: 'Blue', primary: '#3a6ea8', accent: '#d8e2ee' },
+  { id: 'orange', name: 'Orange', primary: '#d97732', accent: '#f8e4d2' },
+  { id: 'teal', name: 'Dark Teal', primary: '#327a78', accent: '#d9ece9' },
+  { id: 'plum', name: 'Plum', primary: '#814c72', accent: '#ecdce8' },
+  { id: 'sage', name: 'Sage', primary: '#6b8e5a', accent: '#e1e8de' },
+  { id: 'burgundy', name: 'Burgundy', primary: '#8c2f39', accent: '#e8d5d7' },
+  { id: 'dustyrose', name: 'Dusty Rose', primary: '#b5707a', accent: '#f0e2e4' },
   { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
-  { id: 'purple', name: 'Purple', primary: '#6c4fa8', accent: '#efe9f9' },
 ];
 
 // =========================================================================
@@ -160,12 +168,17 @@ function warnOnce(msg) {
 // =========================================================================
 // Color scheme (2 fixed options, saved locally)
 // =========================================================================
+// A named default rather than COLOR_SCHEMES[0] — so the palette above can be
+// freely reordered (to match how it reads in the picker) without silently
+// changing what new users land on.
+const DEFAULT_COLOR_SCHEME_ID = 'orange';
+
 function loadColorSchemeId() {
   try {
     const saved = localStorage.getItem(COLOR_SCHEME_KEY);
     if (COLOR_SCHEMES.some(s => s.id === saved)) return saved;
   } catch (e) { /* ignore */ }
-  return COLOR_SCHEMES[0].id;
+  return DEFAULT_COLOR_SCHEME_ID;
 }
 
 let selectedColorSchemeId = loadColorSchemeId();

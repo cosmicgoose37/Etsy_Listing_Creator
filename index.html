@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789688129" />
+<link rel="stylesheet" href="style.css?v=1789689515" />
 </head>
 <body>
 <header class="topbar">
@@ -56,27 +56,43 @@
           <input type="text" id="companyName" placeholder="e.g. Willow & Ink Co." required />
         </label>
 
-        <label>Color Scheme</label>
+        <label>Accent Color</label>
         <div class="color-scheme-row" id="colorSchemeRow">
+          <button type="button" class="color-scheme-option" data-scheme="purple">
+            <span class="color-scheme-swatch"><span style="background:#6c4bc3"></span><span style="background:#e8dff7"></span></span>
+            <span class="color-scheme-label">Purple</span>
+          </button>
+          <button type="button" class="color-scheme-option" data-scheme="blue">
+            <span class="color-scheme-swatch"><span style="background:#3a6ea8"></span><span style="background:#d8e2ee"></span></span>
+            <span class="color-scheme-label">Blue</span>
+          </button>
           <button type="button" class="color-scheme-option selected" data-scheme="orange">
-            <span class="color-scheme-swatch"><span style="background:#c96b4f"></span><span style="background:#f4e9dd"></span></span>
+            <span class="color-scheme-swatch"><span style="background:#d97732"></span><span style="background:#f8e4d2"></span></span>
             <span class="color-scheme-label">Orange</span>
           </button>
           <button type="button" class="color-scheme-option" data-scheme="teal">
-            <span class="color-scheme-swatch"><span style="background:#1f5f58"></span><span style="background:#e7f2f0"></span></span>
+            <span class="color-scheme-swatch"><span style="background:#327a78"></span><span style="background:#d9ece9"></span></span>
             <span class="color-scheme-label">Dark Teal</span>
           </button>
           <button type="button" class="color-scheme-option" data-scheme="plum">
-            <span class="color-scheme-swatch"><span style="background:#7d3b60"></span><span style="background:#f7ebf1"></span></span>
+            <span class="color-scheme-swatch"><span style="background:#814c72"></span><span style="background:#ecdce8"></span></span>
             <span class="color-scheme-label">Plum</span>
+          </button>
+          <button type="button" class="color-scheme-option" data-scheme="sage">
+            <span class="color-scheme-swatch"><span style="background:#6b8e5a"></span><span style="background:#e1e8de"></span></span>
+            <span class="color-scheme-label">Sage</span>
+          </button>
+          <button type="button" class="color-scheme-option" data-scheme="burgundy">
+            <span class="color-scheme-swatch"><span style="background:#8c2f39"></span><span style="background:#e8d5d7"></span></span>
+            <span class="color-scheme-label">Burgundy</span>
+          </button>
+          <button type="button" class="color-scheme-option" data-scheme="dustyrose">
+            <span class="color-scheme-swatch"><span style="background:#b5707a"></span><span style="background:#f0e2e4"></span></span>
+            <span class="color-scheme-label">Dusty Rose</span>
           </button>
           <button type="button" class="color-scheme-option" data-scheme="navy">
             <span class="color-scheme-swatch"><span style="background:#2f4a68"></span><span style="background:#eaf0f7"></span></span>
             <span class="color-scheme-label">Navy</span>
-          </button>
-          <button type="button" class="color-scheme-option" data-scheme="purple">
-            <span class="color-scheme-swatch"><span style="background:#6c4fa8"></span><span style="background:#efe9f9"></span></span>
-            <span class="color-scheme-label">Purple</span>
           </button>
         </div>
 
@@ -260,6 +276,6 @@ Instant Digital Download"></textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1789688129"></script>
+<script src="app.js?v=1789689515"></script>
 </body>
 </html>
