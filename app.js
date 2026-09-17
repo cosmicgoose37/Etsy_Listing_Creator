@@ -826,6 +826,72 @@ function fitLines(ctx, text, x, y, opts) {
   return { bottom: curY, fontSize, truncated };
 }
 
+// Balanced multi-line wrap for headline-style text: instead of greedily
+// filling each line to the max width (which can strand a single word alone
+// on the last line), this tries every word-boundary split and picks
+// whichever keeps the longest line shortest — closer to how a human would
+// break a headline into visually even lines. Shrinks the font in steps when
+// no split fits maxWidth, and falls back to the app's usual greedy-wrap-
+// then-truncate safety net at minSize so it can never overflow or clip.
+function fitLinesBalanced(ctx, text, x, y, opts) {
+  const {
+    maxWidth, maxLines = 2, lineHeightRatio = 1.05,
+    startSize, minSize = Math.round(startSize * 0.5), step = 4,
+    weight = 700, family, align = 'left', label,
+  } = opts;
+
+  const words = text.split(/\s+/).filter(Boolean);
+
+  function bestSplit(fontSize) {
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+    if (ctx.measureText(text).width <= maxWidth) return [text];
+    if (words.length < 2) return null; // one long word — nothing to split, keep shrinking
+    let best = null;
+    for (let i = 1; i < words.length; i++) {
+      const a = words.slice(0, i).join(' ');
+      const b = words.slice(i).join(' ');
+      const wa = ctx.measureText(a).width;
+      const wb = ctx.measureText(b).width;
+      if (wa > maxWidth || wb > maxWidth) continue;
+      const score = Math.max(wa, wb);
+      if (!best || score < best.score) best = { lines: [a, b], score };
+    }
+    return best ? best.lines : null;
+  }
+
+  let fontSize = startSize;
+  let lines = bestSplit(fontSize);
+  while (!lines && fontSize > minSize) {
+    fontSize -= step;
+    lines = bestSplit(fontSize);
+  }
+
+  let truncated = false;
+  if (!lines) {
+    fontSize = minSize;
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+    lines = wrapLines(ctx, text, maxWidth);
+    if (lines.length > maxLines) {
+      truncated = true;
+      lines = lines.slice(0, maxLines);
+      lines[maxLines - 1] = truncateToWidth(ctx, lines[maxLines - 1], maxWidth);
+    }
+  }
+
+  const lineHeight = Math.round(fontSize * lineHeightRatio);
+  ctx.font = `${weight} ${fontSize}px "${family}"`;
+  ctx.textAlign = align;
+  let curY = y;
+  lines.forEach(l => {
+    ctx.fillText(l, x, curY);
+    curY += lineHeight;
+  });
+  if (truncated) {
+    warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
+  }
+  return { bottom: curY, fontSize, lines, truncated };
+}
+
 // Overflow-safe single line: shrinks first, then truncates with an ellipsis
 // as a last resort. Used for user-entered values that must stay on one line
 // (a shop name in a header, a card title) no matter how long they are.
@@ -855,6 +921,62 @@ function fitSingleLine(ctx, text, x, y, opts) {
   return { fontSize, truncated };
 }
 
+// Manual letter-spacing for short uppercase micro-copy (a shop name in a
+// small branding row, "DIGITAL DOWNLOAD"). Canvas' native `letterSpacing`
+// property isn't supported in every browser, so this draws character by
+// character for consistent tracking everywhere.
+function measureSpacedWidth(ctx, text, spacing) {
+  let w = 0;
+  for (const ch of text) w += ctx.measureText(ch).width + spacing;
+  return text.length ? w - spacing : 0;
+}
+
+function fillTextSpaced(ctx, text, x, y, spacing, align = 'left') {
+  const total = measureSpacedWidth(ctx, text, spacing);
+  let cx = x;
+  if (align === 'center') cx = x - total / 2;
+  else if (align === 'right') cx = x - total;
+  const prevAlign = ctx.textAlign;
+  ctx.textAlign = 'left';
+  for (const ch of text) {
+    ctx.fillText(ch, cx, y);
+    cx += ctx.measureText(ch).width + spacing;
+  }
+  ctx.textAlign = prevAlign;
+  return total;
+}
+
+// Shrink-to-fit variant of fillTextSpaced for unbounded user text (a shop
+// name) that must stay on one line of small, letter-spaced micro-copy no
+// matter how long it is.
+function fitSingleLineSpaced(ctx, text, x, y, opts) {
+  const {
+    maxWidth, startSize, minSize = Math.round(startSize * 0.65), step = 1,
+    weight = 700, family, spacing = 2, align = 'left', label,
+  } = opts;
+
+  let fontSize = startSize;
+  ctx.font = `${weight} ${fontSize}px "${family}"`;
+  while (measureSpacedWidth(ctx, text, spacing) > maxWidth && fontSize > minSize) {
+    fontSize -= step;
+    ctx.font = `${weight} ${fontSize}px "${family}"`;
+  }
+  let out = text;
+  let truncated = false;
+  if (measureSpacedWidth(ctx, out, spacing) > maxWidth) {
+    while (out.length > 1 && measureSpacedWidth(ctx, out + '…', spacing) > maxWidth) {
+      out = out.slice(0, -1);
+    }
+    out += '…';
+    truncated = true;
+  }
+  fillTextSpaced(ctx, out, x, y, spacing, align);
+  if (truncated) {
+    warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
+  }
+  return { fontSize, truncated };
+}
+
 function hexToRgb(hex) {
   const m = hex.replace('#', '');
   const bigint = parseInt(m.length === 3 ? m.split('').map(c => c + c).join('') : m, 16);
@@ -864,6 +986,11 @@ function hexToRgb(hex) {
 function luminance(hex) {
   const { r, g, b } = hexToRgb(hex);
   return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+
+function hexToRgba(hex, alpha) {
+  const { r, g, b } = hexToRgb(hex);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
 function contrastText(hex) {
@@ -967,75 +1094,158 @@ function getProduct() {
 // four things are true for every listing this app generates, so there's no
 // reason to ask the user to retype them or risk them saying something else.
 const HERO_FEATURE_BADGES = [
-  `${PLACEHOLDER_SIZES.join(' / ')} PER PAGE`,
-  'COLOR + GREYSCALE',
-  'FILLABLE PDF',
+  `${PLACEHOLDER_SIZES.join(' • ')} PER PAGE`,
+  'COLOR + INK-SAVER',
+  'FILLABLE CHECKLIST',
   'INSTANT DOWNLOAD',
 ];
+
+// The 3 uploaded pages shown fanned out in the Hero's mockup stack: the
+// fillable checklist and the ink-saver (greyscale) alternative behind, the
+// flagship color preview up front. Any slot without an upload yet falls
+// back to a plain placeholder card, so the mockup still renders with
+// anywhere from 0 to 3 of these present.
+const HERO_MOCKUP_BACK_OFFSET = 0.32; // fraction of the front doc's width
+
+// A page's own aspect ratio, clamped to a sane range so one unusually
+// extreme upload can't distort the mockup — falls back to a neutral
+// US-Letter-ish shape when no image has been uploaded yet for that slot.
+function heroDocAspect(img) {
+  if (!img) return 0.7727;
+  return Math.min(1.35, Math.max(0.55, img.width / img.height));
+}
+
+// Draws one "page" of the Hero mockup: a soft-shadowed, rounded card sized
+// to the source image's own aspect ratio (drawContain, never cropped or
+// stretched) so it reads as a physical printed page rather than a
+// screenshot thumbnail. cx/cy are the card's center in the unrotated canvas
+// frame; the card itself is built in its own local, rotated space.
+function drawHeroMockupDoc(ctx, img, watermark, cx, cy, h, rotationDeg, surfaceColor) {
+  const w = h * heroDocAspect(img);
+  const pad = Math.max(14, h * 0.035);
+  const outerR = Math.max(10, h * 0.024);
+  const innerR = Math.max(6, h * 0.015);
+
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(rotationDeg * Math.PI / 180);
+
+  ctx.save();
+  ctx.shadowColor = 'rgba(40, 26, 66, 0.3)';
+  ctx.shadowBlur = h * 0.05;
+  ctx.shadowOffsetY = h * 0.032;
+  ctx.fillStyle = surfaceColor;
+  roundRect(ctx, -w / 2, -h / 2, w, h, outerR);
+  ctx.fill();
+  ctx.restore();
+
+  ctx.save();
+  roundRect(ctx, -w / 2 + pad, -h / 2 + pad, w - pad * 2, h - pad * 2, innerR);
+  ctx.clip();
+  if (img) {
+    drawContain(ctx, -w / 2 + pad, -h / 2 + pad, w - pad * 2, h - pad * 2, img, surfaceColor);
+  } else {
+    ctx.fillStyle = '#efe8f4';
+    ctx.fillRect(-w / 2 + pad, -h / 2 + pad, w - pad * 2, h - pad * 2);
+  }
+  if (watermark) {
+    drawWatermark(ctx, watermark.text, watermark, {
+      x: -w / 2 + pad, y: -h / 2 + pad, w: w - pad * 2, h: h - pad * 2,
+    });
+  }
+  ctx.restore();
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+  ctx.lineWidth = 2;
+  roundRect(ctx, -w / 2, -h / 2, w, h, outerR);
+  ctx.stroke();
+
+  ctx.restore();
+}
 
 function drawChecklistHero(ctx, brand, product, images, watermark) {
   ctx.fillStyle = brand.accentColor;
   ctx.fillRect(0, 0, SIZE, SIZE);
   const textColor = contrastText(brand.accentColor);
-  const margin = 100;
+  const margin = 120;
   const contentW = SIZE - margin * 2;
 
-  // ---- Subtle "Digital Download" badge, top right — small and single-line
-  // on purpose, so the Hero reads as a product cover rather than another
-  // info page. ----
+  // ---- Top micro-branding row — shop name and "Digital Download" share the
+  // same small, letter-spaced treatment so they read as one quiet branding
+  // line rather than two competing elements. A hairline rule closes it off. ----
+  const brandY = 94;
   ctx.font = `700 24px "${brand.font}"`;
-  const dlText = 'DIGITAL DOWNLOAD';
-  const dlPadX = 22, dlH = 50;
-  const dlW = ctx.measureText(dlText).width + dlPadX * 2;
-  const dlX = SIZE - margin - dlW, dlY = 58;
+  const dlLabel = 'DIGITAL DOWNLOAD';
+  const dlSpacing = 2.4;
+  const dlW = measureSpacedWidth(ctx, dlLabel, dlSpacing);
+  const dlX = SIZE - margin - dlW;
+
   ctx.fillStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.1;
-  roundRect(ctx, dlX, dlY, dlW, dlH, dlH / 2);
-  ctx.fill();
-  ctx.globalAlpha = 0.85;
-  ctx.textAlign = 'center';
-  ctx.fillText(dlText, dlX + dlW / 2, dlY + dlH / 2 + 8);
+  ctx.globalAlpha = 0.7;
+  fillTextSpaced(ctx, dlLabel, SIZE - margin, brandY, dlSpacing, 'right');
   ctx.globalAlpha = 1;
 
-  // ---- Header — shop name is user-entered and unbounded in length, so it
-  // shrinks (then truncates as a last resort) rather than ever overflowing
-  // past the canvas edge or under the badge. ----
   ctx.fillStyle = brand.primaryColor;
-  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
-    maxWidth: dlX - margin - 30, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  fitSingleLineSpaced(ctx, brand.companyName.toUpperCase(), margin, brandY, {
+    maxWidth: dlX - margin - 36, startSize: 24, minSize: 16, weight: 700, family: brand.font, spacing: 2.4, label: 'Shop name',
   });
 
   ctx.strokeStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.25;
-  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.16;
+  ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(margin, 128);
-  ctx.lineTo(SIZE - margin, 128);
+  ctx.moveTo(margin, brandY + 34);
+  ctx.lineTo(SIZE - margin, brandY + 34);
   ctx.stroke();
   ctx.globalAlpha = 1;
 
-  // ---- Headline — capped at 2 lines, auto-shrinking first and truncating
-  // only as a last resort, so a long product name can never push the
-  // tagline/badges/image area off the canvas. ----
+  // ---- Title — the strongest element on the cover. Balanced-wraps across
+  // up to 2 lines (rather than greedily filling the first line) and shrinks
+  // before ever truncating, so a 2-word title and a long one both scale
+  // cleanly without the user ever inserting a manual line break. ----
   ctx.fillStyle = textColor;
-  const titleFit = fitLines(ctx, product.name, margin, 232, {
-    maxWidth: contentW, maxLines: 2, startSize: 104, minSize: 60, step: 4, weight: 700, family: brand.font, label: 'Product name (Hero Cover)',
+  const titleFit = fitLinesBalanced(ctx, product.name, margin, 248, {
+    maxWidth: contentW, maxLines: 2, lineHeightRatio: 1.04, startSize: 128, minSize: 60, step: 4, weight: 700, family: brand.font, label: 'Product name (Hero Cover)',
   });
   let y = titleFit.bottom;
 
+  // ---- Subtitle callout — a small pill so it reads as an intentional
+  // selling point rather than faint body copy. The leading accent mark is
+  // part of the styling (applied to whatever the user types), never stored
+  // as product data. Nothing renders here at all when the tagline is empty. ----
   if (product.tagline) {
-    ctx.fillStyle = textColor;
-    ctx.globalAlpha = 0.7;
-    y = fitLines(ctx, product.tagline, margin, y + 4, {
-      maxWidth: contentW, maxLines: 1, startSize: 38, minSize: 24, step: 2, weight: 500, family: brand.font, label: 'Tagline (Hero Cover)',
-    }).bottom;
+    const calloutText = `★ ${product.tagline}`;
+    let calloutSize = 34;
+    ctx.font = `600 ${calloutSize}px "${brand.font}"`;
+    const calloutMaxW = contentW - 64;
+    while (ctx.measureText(calloutText).width > calloutMaxW && calloutSize > 22) {
+      calloutSize -= 2;
+      ctx.font = `600 ${calloutSize}px "${brand.font}"`;
+    }
+    let calloutDisplay = calloutText;
+    if (ctx.measureText(calloutDisplay).width > calloutMaxW) {
+      calloutDisplay = truncateToWidth(ctx, calloutDisplay, calloutMaxW);
+      warnOnce('Subtitle (Hero Cover) was too long to fit and got shortened — consider a shorter value.');
+    }
+
+    const calloutPadX = 30, calloutH = 66;
+    const calloutW = ctx.measureText(calloutDisplay).width + calloutPadX * 2;
+    const calloutY = y + 26;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.13;
+    roundRect(ctx, margin, calloutY, calloutW, calloutH, calloutH / 2);
+    ctx.fill();
     ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.textAlign = 'left';
+    ctx.fillText(calloutDisplay, margin + calloutPadX, calloutY + calloutH / 2 + 11);
+    y = calloutY + calloutH;
   }
 
-  // ---- Feature badges — fixed content, wraps to a second row if needed
-  // rather than shrinking to the point of being unreadable. ----
-  ctx.font = `600 30px "${brand.font}"`;
-  const chipPadX = 26, chipH = 60, chipGapX = 14, chipGapY = 14;
+  // ---- Feature badges — larger and easier to scan than before, wrapping
+  // to a second row only if all 4 don't comfortably fit one. ----
+  ctx.font = `600 34px "${brand.font}"`;
+  const chipPadX = 32, chipH = 72, chipGapX = 18, chipGapY = 18;
   const chipRows = [];
   let chipRow = [], chipRowW = 0;
   HERO_FEATURE_BADGES.forEach(text => {
@@ -1049,84 +1259,67 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   });
   if (chipRow.length) chipRows.push(chipRow);
 
-  let by = y + 32;
+  let by = y + 36;
   chipRows.forEach(row => {
     let bx = margin;
     row.forEach(({ text, w }) => {
       ctx.fillStyle = brand.primaryColor;
-      ctx.globalAlpha = 0.12;
+      ctx.globalAlpha = 0.14;
       roundRect(ctx, bx, by, w, chipH, chipH / 2);
       ctx.fill();
       ctx.globalAlpha = 1;
       ctx.fillStyle = brand.primaryColor;
       ctx.textAlign = 'center';
-      ctx.fillText(text, bx + w / 2, by + chipH / 2 + 10);
+      ctx.fillText(text, bx + w / 2, by + chipH / 2 + 12);
       bx += w + chipGapX;
     });
     by += chipH + chipGapY;
   });
-  const badgesBottom = by - chipGapY;
+  let contentBottom = by - chipGapY;
 
-  // ---- Large showcase image — the Color Placeholders preview. The top
-  // edge follows the content above it, but never eats into a minimum image
-  // height even in a worst-case pile-up of shrunk/truncated/wrapped text.
-  const imgBottom = SIZE - 170;
-  const MIN_IMG_H = 500;
-  const imgTop = Math.min(badgesBottom + 40, imgBottom - MIN_IMG_H);
-  const imgH = imgBottom - imgTop;
+  // ---- Optional product-type label — only rendered once a descriptor
+  // field exists upstream; harmless no-op today since nothing sets it yet. ----
+  if (product.typeDescriptor) {
+    const labelY = contentBottom + 46;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.65;
+    fitSingleLineSpaced(ctx, product.typeDescriptor.toUpperCase(), margin, labelY, {
+      maxWidth: contentW, startSize: 20, minSize: 15, weight: 700, family: brand.font, spacing: 2, label: 'Product type label (Hero Cover)',
+    });
+    ctx.globalAlpha = 1;
+    contentBottom = labelY + 10;
+  }
+
+  // ---- Product mockup — 3 uploaded pages fanned into a layered stack
+  // instead of a flat screenshot grid, occupying roughly the lower half of
+  // the cover. The top follows the content above it (so a short title
+  // leaves the mockup more room), but never shrinks past MIN_MOCKUP_H even
+  // in the worst case of a maximally long title + subtitle + 2 badge rows. ----
+  const mockupBottom = SIZE - margin - 10;
+  const MIN_MOCKUP_H = 1000;
+  const mockupTop = Math.min(contentBottom + 56, mockupBottom - MIN_MOCKUP_H);
+  const mockupH = mockupBottom - mockupTop;
+  const mockupCx = SIZE / 2;
+  const mockupCy = mockupTop + mockupH / 2;
 
   ctx.save();
-  roundRect(ctx, margin, imgTop, contentW, imgH, 16);
-  ctx.clip();
-  if (images.color) {
-    drawCover(ctx, margin, imgTop, contentW, imgH, images.color);
-  } else {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(margin, imgTop, contentW, imgH);
-  }
-  if (watermark) {
-    drawWatermark(ctx, watermark.text, watermark, { x: margin, y: imgTop, w: contentW, h: imgH });
-  }
+  const glow = ctx.createRadialGradient(mockupCx, mockupCy, mockupH * 0.05, mockupCx, mockupCy, mockupH * 0.72);
+  glow.addColorStop(0, hexToRgba(brand.primaryColor, 0.14));
+  glow.addColorStop(1, hexToRgba(brand.primaryColor, 0));
+  ctx.fillStyle = glow;
+  ctx.fillRect(margin - 40, mockupTop - mockupH * 0.12, contentW + 80, mockupH * 1.24);
   ctx.restore();
 
-  ctx.strokeStyle = 'rgba(0,0,0,0.1)';
-  ctx.lineWidth = 2;
-  roundRect(ctx, margin, imgTop, contentW, imgH, 16);
-  ctx.stroke();
+  const frontH = mockupH * 0.9;
+  const frontW = frontH * heroDocAspect(images.color);
+  const sideOffsetX = frontW * HERO_MOCKUP_BACK_OFFSET;
+  const backCy = mockupCy - mockupH * 0.015;
+  const frontCy = mockupCy + mockupH * 0.01;
+  const surfaceColor = '#fcfbf9';
 
-  // ---- Small checklist preview, overlapping the placeholder image's
-  // corner — makes it immediately clear this is a bundle, not one image.
-  if (images.checklist) {
-    const thumbW = 480, thumbH = 480, thumbPad = 16;
-    const thumbX = margin + 50;
-    const thumbY = Math.max(imgTop + 20, imgBottom - thumbH - 50);
-
-    ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.16)';
-    roundRect(ctx, thumbX + 8, thumbY + 10, thumbW, thumbH, 16);
-    ctx.fill();
-    ctx.restore();
-
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, thumbX, thumbY, thumbW, thumbH, 16);
-    ctx.fill();
-
-    ctx.save();
-    roundRect(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, 10);
-    ctx.clip();
-    drawCover(ctx, thumbX + thumbPad, thumbY + thumbPad, thumbW - thumbPad * 2, thumbH - thumbPad * 2, images.checklist);
-    if (watermark) {
-      drawWatermark(ctx, watermark.text, watermark, {
-        x: thumbX + thumbPad, y: thumbY + thumbPad, w: thumbW - thumbPad * 2, h: thumbH - thumbPad * 2,
-      });
-    }
-    ctx.restore();
-
-    ctx.strokeStyle = 'rgba(0,0,0,0.12)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, thumbX, thumbY, thumbW, thumbH, 16);
-    ctx.stroke();
-  }
+  drawHeroMockupDoc(ctx, images.checklist, watermark, mockupCx - sideOffsetX, backCy, frontH * 0.86, -4.5, surfaceColor);
+  drawHeroMockupDoc(ctx, images.grey, watermark, mockupCx + sideOffsetX, backCy, frontH * 0.86, 4.5, surfaceColor);
+  drawHeroMockupDoc(ctx, images.color, watermark, mockupCx, frontCy, frontH, 0, surfaceColor);
 }
 
 // "Everything Included" showcase — layout is fixed on purpose (title, badge,
