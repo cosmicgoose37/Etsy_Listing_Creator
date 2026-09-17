@@ -1147,7 +1147,7 @@ const SHOWCASE_FILE_INVENTORY = [
 const SHOWCASE_CARDS = [
   { key: 'checklist', title: 'Fillable Checklist', desc: 'Use digitally or print it' },
   { key: 'color', title: 'Color Placeholders', desc: 'Included in all 3 sizes' },
-  { key: 'grey', title: 'Greyscale Placeholders', desc: 'Ink-friendly option' },
+  { key: 'grey', title: 'Greyscale Placeholders', desc: 'Saves printer ink' },
 ];
 
 function drawIncludedShowcase(ctx, brand, product, images, watermark) {
@@ -1551,7 +1551,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 // never change); only the 2 preview images differ, one per print style.
 const PRINT_STYLE_CARDS = [
   { key: 'color', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
-  { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Printer-friendly greyscale option', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Saves printer ink on everyday pages', note: 'Available in 9 • 16 • 25 cards/page' },
 ];
 
 function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
