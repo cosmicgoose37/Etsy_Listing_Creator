@@ -120,6 +120,7 @@ const els = {
   checklistImgSize25: document.getElementById('checklistImgSize25'),
   checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
   checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
+  clearCachedImagesBtn: document.getElementById('clearCachedImagesBtn'),
   productName: document.getElementById('productName'),
   productNameHistory: document.getElementById('productNameHistory'),
   clearProductNameHistoryBtn: document.getElementById('clearProductNameHistoryBtn'),
@@ -407,6 +408,62 @@ function syncGradeSubjectVisibility() {
 }
 
 // =========================================================================
+// Local image cache (IndexedDB) — remembers the 6 uploaded preview images
+// across reloads so testing/iterating doesn't require re-uploading the same
+// screenshots every time. IndexedDB (not localStorage) because these are
+// full-resolution data URLs that can run into several MB each, well past
+// what localStorage's much smaller quota can reliably hold.
+// =========================================================================
+const IMAGE_CACHE_DB_NAME = 'etsyImageMakerImageCache';
+const IMAGE_CACHE_STORE = 'images';
+
+function openImageCacheDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IMAGE_CACHE_DB_NAME, 1);
+    req.onupgradeneeded = () => req.result.createObjectStore(IMAGE_CACHE_STORE);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function saveImageToCache(key, dataUrl) {
+  try {
+    const db = await openImageCacheDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(IMAGE_CACHE_STORE, 'readwrite');
+      tx.objectStore(IMAGE_CACHE_STORE).put(dataUrl, key);
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { /* storage full or unavailable — the upload itself still works fine */ }
+}
+
+async function loadImageFromCache(key) {
+  try {
+    const db = await openImageCacheDB();
+    return await new Promise((resolve, reject) => {
+      const req = db.transaction(IMAGE_CACHE_STORE, 'readonly').objectStore(IMAGE_CACHE_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  } catch (e) {
+    return null;
+  }
+}
+
+async function clearImageCache() {
+  try {
+    const db = await openImageCacheDB();
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction(IMAGE_CACHE_STORE, 'readwrite');
+      tx.objectStore(IMAGE_CACHE_STORE).clear();
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+    });
+  } catch (e) { /* ignore */ }
+}
+
+// =========================================================================
 // Checklist product type — one explicitly-labeled required image (the Color
 // Placeholders preview) that builds the Hero Cover (see drawChecklistHero).
 // Kept separate from the generic multi-image uploader so there's no
@@ -439,14 +496,16 @@ async function renderPdfFirstPageToDataUrl(file) {
   return canvas.toDataURL('image/png');
 }
 
-function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl) {
+function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts = {}) {
+  const { persist = true, restored = false } = opts;
   const img = new Image();
   img.onload = () => {
     checklistImages[key] = img;
     previewEl.innerHTML = `<img src="${dataUrl}" alt="" />`;
-    statusEl.textContent = '— uploaded';
+    statusEl.textContent = restored ? '— remembered from last upload' : '— uploaded';
   };
   img.src = dataUrl;
+  if (persist) saveImageToCache(key, dataUrl);
 }
 
 function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
@@ -478,6 +537,36 @@ bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.
 bindChecklistImageUpload(els.checklistImgSize9, els.checklistImgSize9Preview, els.checklistImgSize9Status, 'size9');
 bindChecklistImageUpload(els.checklistImgSize16, els.checklistImgSize16Preview, els.checklistImgSize16Status, 'size16');
 bindChecklistImageUpload(els.checklistImgSize25, els.checklistImgSize25Preview, els.checklistImgSize25Status, 'size25');
+
+const CHECKLIST_IMAGE_FIELDS = [
+  { key: 'checklist', previewEl: els.checklistImgChecklistPreview, statusEl: els.checklistImgChecklistStatus },
+  { key: 'color', previewEl: els.checklistImgColorPreview, statusEl: els.checklistImgColorStatus },
+  { key: 'grey', previewEl: els.checklistImgGreyPreview, statusEl: els.checklistImgGreyStatus },
+  { key: 'size9', previewEl: els.checklistImgSize9Preview, statusEl: els.checklistImgSize9Status },
+  { key: 'size16', previewEl: els.checklistImgSize16Preview, statusEl: els.checklistImgSize16Status },
+  { key: 'size25', previewEl: els.checklistImgSize25Preview, statusEl: els.checklistImgSize25Status },
+];
+
+// Restores any previously-uploaded images from the local cache on load, so
+// re-testing (or just reopening the tab) doesn't require re-uploading the
+// same 6 screenshots every time. Note this only restores what's cached in
+// *this* browser — a real new listing still needs its own real screenshots.
+(async function restoreCachedChecklistImages() {
+  await Promise.all(CHECKLIST_IMAGE_FIELDS.map(async ({ key, previewEl, statusEl }) => {
+    const dataUrl = await loadImageFromCache(key);
+    if (dataUrl) loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, { persist: false, restored: true });
+  }));
+})();
+
+els.clearCachedImagesBtn.addEventListener('click', () => {
+  if (!confirm('Clear the remembered preview images from this browser? You will need to upload them again.')) return;
+  CHECKLIST_IMAGE_FIELDS.forEach(({ key, previewEl, statusEl }) => {
+    checklistImages[key] = null;
+    previewEl.innerHTML = '';
+    statusEl.textContent = '— required';
+  });
+  clearImageCache();
+});
 
 function missingChecklistImageLabels() {
   const missing = [];

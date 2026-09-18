@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1789689515" />
+<link rel="stylesheet" href="style.css?v=1789690611" />
 </head>
 <body>
 <header class="topbar">
@@ -174,6 +174,10 @@ Instant Digital Download"></textarea>
       <section class="field-group" id="checklistImagesSection" hidden>
         <h2>Preview Images <span class="hint">required for this product type</span></h2>
         <p class="hint">These build all 7 listing images automatically (some images are reused across multiple listing images), alongside your product name and shop name. You can drop the actual PDF here instead of a screenshot — the first page is rendered automatically as the preview.</p>
+        <div class="type-status-row">
+          <span class="hint">Remembered in this browser — no need to re-upload after a reload.</span>
+          <button type="button" id="clearCachedImagesBtn" class="link-btn">clear remembered images</button>
+        </div>
 
         <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
           <input type="file" accept="image/*,application/pdf" id="checklistImgChecklist" />
@@ -276,6 +280,6 @@ Instant Digital Download"></textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1789689515"></script>
+<script src="app.js?v=1789690611"></script>
 </body>
 </html>
