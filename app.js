@@ -127,6 +127,7 @@ const els = {
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
+  collectionDescriptor: document.getElementById('collectionDescriptor'),
   bullets: document.getElementById('bullets'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
@@ -603,7 +604,7 @@ function syncBadgeVisibility() {
 // of which shop it's for.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
-const DEFAULT_TYPE_CONTENT = { tagline: '', bullets: '', customBadge: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
+const DEFAULT_TYPE_CONTENT = { tagline: '', collectionDescriptor: '', bullets: '', customBadge: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
 
 function loadTypeContent() {
   try {
@@ -631,6 +632,7 @@ function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
   typeContent[els.productType.value] = {
     tagline: els.tagline.value,
+    collectionDescriptor: els.collectionDescriptor.value,
     bullets: els.bullets.value,
     customBadge: els.customBadge.value,
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
@@ -644,6 +646,7 @@ function applyTypeContent(type) {
   const saved = typeContent[type] || DEFAULT_TYPE_CONTENT;
   suppressTypeContentSave = true;
   els.tagline.value = saved.tagline || '';
+  els.collectionDescriptor.value = saved.collectionDescriptor || '';
   els.bullets.value = saved.bullets || '';
   els.customBadge.value = saved.customBadge || '';
   els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
@@ -663,7 +666,7 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.bullets, els.customBadge, els.zipFileCount].forEach(el => {
+[els.tagline, els.collectionDescriptor, els.bullets, els.customBadge, els.zipFileCount].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -673,7 +676,7 @@ els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/What's Included/Badges/ZIP count for "${label}"?`)) return;
+  if (!confirm(`Clear saved Tagline/Collection Descriptor/What's Included/Badges/ZIP count for "${label}"?`)) return;
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
@@ -1185,6 +1188,7 @@ function getProduct() {
     gradeLevel: els.gradeLevel.value.trim(),
     subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
+    typeDescriptor: els.collectionDescriptor.value.trim(),
     bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
     badges,
     zipFileCount: Math.max(1, parseInt(els.zipFileCount.value, 10) || DEFAULT_ZIP_FILE_COUNT),
