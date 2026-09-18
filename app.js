@@ -1928,7 +1928,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.fillText(c.title, cx, cardsTop + 70);
 
     ctx.fillStyle = '#6b6259';
-    ctx.font = `500 26px "${brand.font}"`;
+    ctx.font = `500 29px "${brand.font}"`;
     ctx.fillText(c.subtitle, cx, cardsTop + 112);
 
     const imgX = cardX + pad, imgY = cardsTop + 155, imgW = cardW - pad * 2, imgH = 665;
@@ -1952,7 +1952,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.stroke();
 
     const badgeY = imgY + imgH + 40;
-    ctx.font = `700 22px "${brand.font}"`;
+    ctx.font = `700 25px "${brand.font}"`;
     const badgeW = ctx.measureText(c.badge).width + 44;
     const badgeH = 54;
     const badgeX = cx - badgeW / 2;
@@ -1971,7 +1971,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 
     ctx.fillStyle = textColor;
     ctx.globalAlpha = 0.6;
-    ctx.font = `500 24px "${brand.font}"`;
+    ctx.font = `500 26px "${brand.font}"`;
     ctx.fillText(c.note, cx, badgeY + badgeH + 84);
     ctx.globalAlpha = 1;
   });
@@ -2316,7 +2316,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   const colGap = 40;
   const colW = (contentW - colGap) / 2;
   const colH = 460;
-  const bulletSlotH = 72;
+  const bulletSlotH = 78;
 
   CHECKLIST_GUIDE_COLUMNS.forEach((col, i) => {
     const colX = margin + i * (colW + colGap);
@@ -2360,7 +2360,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 
       ctx.fillStyle = textColor;
       fitLines(ctx, bullet, textX, by, {
-        maxWidth: textMaxW, maxLines: 2, startSize: 26, minSize: 18, step: 2, weight: 500, family: brand.font, label: 'List item',
+        maxWidth: textMaxW, maxLines: 2, startSize: 29, minSize: 20, step: 2, weight: 500, family: brand.font, label: 'List item',
       });
     });
   });
