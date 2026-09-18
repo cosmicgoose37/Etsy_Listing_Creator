@@ -1412,16 +1412,40 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   ctx.fillRect(margin - 40, mockupTop - mockupH * 0.12, contentW + 80, mockupH * 1.24);
   ctx.restore();
 
-  const frontH = mockupH * 0.9;
-  const frontW = frontH * heroDocAspect(images.color);
-  const sideOffsetX = frontW * HERO_MOCKUP_BACK_OFFSET;
+  // Each card keeps its own image's true aspect ratio, so an unusually wide
+  // or narrow upload in any one slot changes that card's width — which
+  // would throw the whole stack off-center if only the front card's center
+  // were centered on the canvas. Instead, the group's actual bounding box
+  // (all 3 cards' real edges, front and back) is what gets centered, with
+  // a scale-down fallback so an extreme combination shrinks to fit inside
+  // the margins rather than clipping off the edge.
+  let mockupScale = 1;
+  let frontH, backH, frontW, checklistW, greyW, sideOffsetX, leftEdge, rightEdge;
+  for (let pass = 0; pass < 2; pass++) {
+    frontH = mockupH * 0.9 * mockupScale;
+    backH = frontH * 0.86;
+    frontW = frontH * heroDocAspect(images.color);
+    checklistW = backH * heroDocAspect(images.checklist);
+    greyW = backH * heroDocAspect(images.grey);
+    sideOffsetX = frontW * HERO_MOCKUP_BACK_OFFSET;
+    leftEdge = Math.min(-sideOffsetX - checklistW / 2, -frontW / 2);
+    rightEdge = Math.max(sideOffsetX + greyW / 2, frontW / 2);
+    const groupW = rightEdge - leftEdge;
+    const maxGroupW = contentW - 80;
+    if (pass === 0 && groupW > maxGroupW) {
+      mockupScale = maxGroupW / groupW;
+    } else {
+      break;
+    }
+  }
+  const groupOriginX = mockupCx - (leftEdge + rightEdge) / 2;
   const backCy = mockupCy - mockupH * 0.015;
   const frontCy = mockupCy + mockupH * 0.01;
   const surfaceColor = '#fcfbf9';
 
-  drawHeroMockupDoc(ctx, images.checklist, watermark, mockupCx - sideOffsetX, backCy, frontH * 0.86, -4.5, surfaceColor);
-  drawHeroMockupDoc(ctx, images.grey, watermark, mockupCx + sideOffsetX, backCy, frontH * 0.86, 4.5, surfaceColor);
-  drawHeroMockupDoc(ctx, images.color, watermark, mockupCx, frontCy, frontH, 0, surfaceColor);
+  drawHeroMockupDoc(ctx, images.checklist, watermark, groupOriginX - sideOffsetX, backCy, backH, -4.5, surfaceColor);
+  drawHeroMockupDoc(ctx, images.grey, watermark, groupOriginX + sideOffsetX, backCy, backH, 4.5, surfaceColor);
+  drawHeroMockupDoc(ctx, images.color, watermark, groupOriginX, frontCy, frontH, 0, surfaceColor);
 }
 
 // "Everything Included" showcase — layout is fixed on purpose (title, badge,
