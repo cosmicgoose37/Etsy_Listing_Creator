@@ -1351,7 +1351,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   // set/edition callout) directly under the title, giving context for the
   // product name before the tagline/badges below. ----
   if (product.typeDescriptor) {
-    const labelY = y + 40;
+    const labelY = y + 64;
     ctx.fillStyle = brand.primaryColor;
     fitSingleLineSpaced(ctx, product.typeDescriptor.toUpperCase(), margin, labelY, {
       maxWidth: contentW, startSize: 38, minSize: 26, weight: 700, family: brand.font, spacing: 1.5, label: 'Product type label (Hero Cover)',
@@ -1359,53 +1359,49 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     y = labelY + 16;
   }
 
-  // ---- Subtitle callout — a small pill so it reads as an intentional
-  // selling point rather than faint body copy. Nothing renders here at all
-  // when the tagline is empty. ----
+  // ---- Subtitle callout — plain large text (no pill background) so it
+  // reads as a bold selling line rather than a small label. Nothing
+  // renders here at all when the tagline is empty. ----
   if (product.tagline) {
-    const calloutText = product.tagline;
-    let calloutSize = 38;
-    ctx.font = `600 ${calloutSize}px "${brand.font}"`;
-    const calloutMaxW = contentW - 64;
-    while (ctx.measureText(calloutText).width > calloutMaxW && calloutSize > 24) {
-      calloutSize -= 2;
-      ctx.font = `600 ${calloutSize}px "${brand.font}"`;
-    }
-    let calloutDisplay = calloutText;
-    if (ctx.measureText(calloutDisplay).width > calloutMaxW) {
-      calloutDisplay = truncateToWidth(ctx, calloutDisplay, calloutMaxW);
-      warnOnce('Subtitle (Hero Cover) was too long to fit and got shortened — consider a shorter value.');
-    }
-
-    const calloutPadX = 34, calloutH = 78;
-    const calloutW = ctx.measureText(calloutDisplay).width + calloutPadX * 2;
-    const calloutY = y + 40;
+    const calloutY = y + 64;
     ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.13;
-    roundRect(ctx, margin, calloutY, calloutW, calloutH, calloutH / 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.textAlign = 'left';
-    ctx.fillText(calloutDisplay, margin + calloutPadX, calloutY + calloutH / 2 + 11);
-    y = calloutY + calloutH;
+    const calloutFit = fitSingleLine(ctx, product.tagline, margin, calloutY, {
+      maxWidth: contentW, startSize: 56, minSize: 32, weight: 700, family: brand.font, label: 'Subtitle (Hero Cover)',
+    });
+    y = calloutY + Math.round(calloutFit.fontSize * 0.3);
   }
 
-  // ---- Feature badges — sized so all 4 comfortably share one row instead
-  // of the 4th wrapping alone to a mostly-empty second row; only wraps for
-  // an unusually wide font where even this doesn't fit. ----
-  ctx.font = `600 36px "${brand.font}"`;
-  const chipPadX = 32, chipH = 82, chipGapX = 18, chipGapY = 18;
+  // ---- Feature badges — shrinks font/padding just enough that all 4
+  // always share one row (regardless of font choice) instead of the 4th
+  // wrapping alone onto a mostly-empty second row; the row-wrap logic
+  // below still applies as a fallback for anything that still doesn't fit. ----
+  let chipFontSize = 36, chipPadX = 32;
+  const chipH = 82, chipGapX = 18, chipGapY = 18;
+  const measureChipsWidth = (fontSize, padX) => {
+    ctx.font = `600 ${fontSize}px "${brand.font}"`;
+    return HERO_FEATURE_BADGES.reduce((sum, t) => sum + ctx.measureText(t).width + padX * 2, 0) + chipGapX * (HERO_FEATURE_BADGES.length - 1);
+  };
+  while (measureChipsWidth(chipFontSize, chipPadX) > contentW && chipFontSize > 26) {
+    chipFontSize -= 1;
+    chipPadX = Math.max(20, chipPadX - 1);
+  }
+  ctx.font = `600 ${chipFontSize}px "${brand.font}"`;
+  // Row width tracks only the gaps BETWEEN chips already placed (not a
+  // trailing one), so a row that truly fits within contentW isn't wrapped
+  // early by counting one gap too many.
   const chipRows = [];
   let chipRow = [], chipRowW = 0;
   HERO_FEATURE_BADGES.forEach(text => {
     const w = ctx.measureText(text).width + chipPadX * 2;
-    if (chipRowW + w + chipGapX > contentW && chipRow.length) {
+    const widthWithThis = chipRow.length ? chipRowW + chipGapX + w : w;
+    if (widthWithThis > contentW && chipRow.length) {
       chipRows.push(chipRow);
-      chipRow = []; chipRowW = 0;
+      chipRow = [];
+      chipRowW = w;
+    } else {
+      chipRowW = widthWithThis;
     }
     chipRow.push({ text, w });
-    chipRowW += w + chipGapX;
   });
   if (chipRow.length) chipRows.push(chipRow);
 
