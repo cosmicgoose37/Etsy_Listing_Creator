@@ -27,6 +27,11 @@ const COLOR_SCHEMES = [
   { id: 'burgundy', name: 'Burgundy', primary: '#8c2f39', accent: '#e8d5d7' },
   { id: 'dustyrose', name: 'Dusty Rose', primary: '#b5707a', accent: '#f0e2e4' },
   { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
+  // Seasonal — a dark theme rather than the usual pale-tint one. Flame
+  // Orange reads clearly against the near-black background (contrastText
+  // switches the title/body copy to white automatically); Black anchors
+  // the mood without needing any other template to change.
+  { id: 'halloween', name: 'Halloween', primary: '#ff5404', accent: '#07020a' },
 ];
 
 // =========================================================================
@@ -1837,7 +1842,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
   ctx.fillText('ALL 3 SIZES INCLUDED IN COLOR + GREYSCALE', SIZE / 2, boxTop + 66);
@@ -1863,7 +1868,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
   });
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 30px "${brand.font}"`;
   ctx.textAlign = 'right';
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
@@ -2013,7 +2018,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
   ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 66);
@@ -2039,7 +2044,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
   });
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 30px "${brand.font}"`;
   ctx.textAlign = 'right';
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
@@ -2207,7 +2212,7 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
   ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 135);
@@ -2246,7 +2251,7 @@ function drawEasySteps(ctx, brand, product) {
     maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
   });
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 30px "${brand.font}"`;
   ctx.textAlign = 'right';
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
@@ -2402,7 +2407,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 38px "${brand.font}"`;
   ctx.textAlign = 'center';
   ctx.fillText('USE IT DIGITALLY OR PRINT IT — BOTH OPTIONS ARE INCLUDED', SIZE / 2, boxTop + 58);
@@ -2428,7 +2433,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
     maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
   });
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 30px "${brand.font}"`;
   ctx.textAlign = 'right';
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
@@ -2555,7 +2560,7 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.fill();
   ctx.globalAlpha = 1;
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 44px "${brand.font}"`;
   ctx.textAlign = 'center';
   ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 92);
@@ -2588,7 +2593,7 @@ function drawDownloadReady(ctx, brand, product) {
     maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
   });
 
-  ctx.fillStyle = '#1f1b17';
+  ctx.fillStyle = textColor;
   ctx.font = `700 30px "${brand.font}"`;
   ctx.textAlign = 'right';
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
