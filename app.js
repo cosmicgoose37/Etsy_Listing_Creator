@@ -27,17 +27,17 @@ const COLOR_SCHEMES = [
   { id: 'burgundy', name: 'Burgundy', primary: '#8c2f39', accent: '#e8d5d7' },
   { id: 'dustyrose', name: 'Dusty Rose', primary: '#b5707a', accent: '#f0e2e4' },
   { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
-  // Seasonal — a dark theme rather than the usual pale-tint one. A single
-  // flat color (even purple+orange) read as too plain, so the background is
-  // a muted dusk gradient spanning 4 stops across the full canvas height
-  // (deep violet -> muted slate blue -> dusty rose -> pumpkin) rather than
-  // 2-3 stops that left most of the warm tone hidden behind content near
-  // the bottom edge. A warm muted gold primary (rather than a neon orange)
-  // keeps the "calming, retro" feel. accent stays the gradient's darkest
-  // stop, since that's what contrastText reads to decide black-vs-white text.
+  // Seasonal — a dark theme rather than the usual pale-tint one. A muted,
+  // desaturated version of this stopped reading as "Halloween" at all, so
+  // this uses the 5 requested colors close to full saturation instead:
+  // Black -> Indigo Violet -> Medium Slate Blue -> Flame Orange as the
+  // background gradient (spanning the full canvas height so the range is
+  // actually visible), with Dark Orange as the primary/badge/text color.
+  // accent stays the gradient's darkest stop, since that's what
+  // contrastText reads to decide black-vs-white text.
   {
-    id: 'halloween', name: 'Halloween', primary: '#e0a458', accent: '#3c2a56',
-    backgroundGradient: ['#3c2a56', '#6a5596', '#8a5568', '#96552e'],
+    id: 'halloween', name: 'Halloween', primary: '#fd8d10', accent: '#07020a',
+    backgroundGradient: ['#07020a', '#502c76', '#8267d0', '#c93f02'],
   },
 ];
 
