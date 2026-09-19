@@ -953,9 +953,9 @@ function fitLines(ctx, text, x, y, opts) {
   ctx.font = `${weight} ${fontSize}px "${family}"`;
   ctx.textAlign = align;
   let curY = y;
-  lines.forEach(l => {
+  lines.forEach((l, i) => {
     ctx.fillText(l, x, curY);
-    curY += lineHeight;
+    if (i < lines.length - 1) curY += lineHeight;
   });
   if (truncated) {
     warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
@@ -1019,9 +1019,9 @@ function fitLinesBalanced(ctx, text, x, y, opts) {
   ctx.font = `${weight} ${fontSize}px "${family}"`;
   ctx.textAlign = align;
   let curY = y;
-  lines.forEach(l => {
+  lines.forEach((l, i) => {
     ctx.fillText(l, x, curY);
-    curY += lineHeight;
+    if (i < lines.length - 1) curY += lineHeight;
   });
   if (truncated) {
     warnOnce(`${label || 'Text'} was too long to fit and got shortened — consider a shorter value.`);
@@ -1368,7 +1368,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
 
     const calloutPadX = 34, calloutH = 78;
     const calloutW = ctx.measureText(calloutDisplay).width + calloutPadX * 2;
-    const calloutY = y + 26;
+    const calloutY = y + 40;
     ctx.fillStyle = brand.primaryColor;
     ctx.globalAlpha = 0.13;
     roundRect(ctx, margin, calloutY, calloutW, calloutH, calloutH / 2);
