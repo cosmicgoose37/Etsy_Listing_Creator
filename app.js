@@ -1353,10 +1353,10 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   // as product data. Nothing renders here at all when the tagline is empty. ----
   if (product.tagline) {
     const calloutText = `★ ${product.tagline}`;
-    let calloutSize = 34;
+    let calloutSize = 38;
     ctx.font = `600 ${calloutSize}px "${brand.font}"`;
     const calloutMaxW = contentW - 64;
-    while (ctx.measureText(calloutText).width > calloutMaxW && calloutSize > 22) {
+    while (ctx.measureText(calloutText).width > calloutMaxW && calloutSize > 24) {
       calloutSize -= 2;
       ctx.font = `600 ${calloutSize}px "${brand.font}"`;
     }
@@ -1366,7 +1366,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
       warnOnce('Subtitle (Hero Cover) was too long to fit and got shortened — consider a shorter value.');
     }
 
-    const calloutPadX = 30, calloutH = 66;
+    const calloutPadX = 34, calloutH = 78;
     const calloutW = ctx.measureText(calloutDisplay).width + calloutPadX * 2;
     const calloutY = y + 26;
     ctx.fillStyle = brand.primaryColor;
@@ -1382,8 +1382,8 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
 
   // ---- Feature badges — larger and easier to scan than before, wrapping
   // to a second row only if all 4 don't comfortably fit one. ----
-  ctx.font = `600 34px "${brand.font}"`;
-  const chipPadX = 32, chipH = 72, chipGapX = 18, chipGapY = 18;
+  ctx.font = `600 38px "${brand.font}"`;
+  const chipPadX = 36, chipH = 82, chipGapX = 18, chipGapY = 18;
   const chipRows = [];
   let chipRow = [], chipRowW = 0;
   HERO_FEATURE_BADGES.forEach(text => {
@@ -1415,17 +1415,16 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   });
   let contentBottom = by - chipGapY;
 
-  // ---- Optional product-type label — only rendered once a descriptor
-  // field exists upstream; harmless no-op today since nothing sets it yet. ----
+  // ---- Optional product-type label — a prominent secondary line (e.g. a
+  // set/edition callout), not a faint caption, so it reads as clearly as
+  // the badges above it rather than getting lost underneath them. ----
   if (product.typeDescriptor) {
-    const labelY = contentBottom + 46;
+    const labelY = contentBottom + 60;
     ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.65;
     fitSingleLineSpaced(ctx, product.typeDescriptor.toUpperCase(), margin, labelY, {
-      maxWidth: contentW, startSize: 20, minSize: 15, weight: 700, family: brand.font, spacing: 2, label: 'Product type label (Hero Cover)',
+      maxWidth: contentW, startSize: 38, minSize: 26, weight: 700, family: brand.font, spacing: 1.5, label: 'Product type label (Hero Cover)',
     });
-    ctx.globalAlpha = 1;
-    contentBottom = labelY + 10;
+    contentBottom = labelY + 16;
   }
 
   // ---- Product mockup — 3 uploaded pages fanned into a layered stack
