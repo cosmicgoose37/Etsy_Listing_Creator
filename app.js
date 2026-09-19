@@ -1347,12 +1347,23 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   });
   let y = titleFit.bottom;
 
+  // ---- Optional product-type label — a prominent secondary line (e.g. a
+  // set/edition callout) directly under the title, giving context for the
+  // product name before the tagline/badges below. ----
+  if (product.typeDescriptor) {
+    const labelY = y + 40;
+    ctx.fillStyle = brand.primaryColor;
+    fitSingleLineSpaced(ctx, product.typeDescriptor.toUpperCase(), margin, labelY, {
+      maxWidth: contentW, startSize: 38, minSize: 26, weight: 700, family: brand.font, spacing: 1.5, label: 'Product type label (Hero Cover)',
+    });
+    y = labelY + 16;
+  }
+
   // ---- Subtitle callout — a small pill so it reads as an intentional
-  // selling point rather than faint body copy. The leading accent mark is
-  // part of the styling (applied to whatever the user types), never stored
-  // as product data. Nothing renders here at all when the tagline is empty. ----
+  // selling point rather than faint body copy. Nothing renders here at all
+  // when the tagline is empty. ----
   if (product.tagline) {
-    const calloutText = `★ ${product.tagline}`;
+    const calloutText = product.tagline;
     let calloutSize = 38;
     ctx.font = `600 ${calloutSize}px "${brand.font}"`;
     const calloutMaxW = contentW - 64;
@@ -1380,10 +1391,11 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     y = calloutY + calloutH;
   }
 
-  // ---- Feature badges — larger and easier to scan than before, wrapping
-  // to a second row only if all 4 don't comfortably fit one. ----
-  ctx.font = `600 38px "${brand.font}"`;
-  const chipPadX = 36, chipH = 82, chipGapX = 18, chipGapY = 18;
+  // ---- Feature badges — sized so all 4 comfortably share one row instead
+  // of the 4th wrapping alone to a mostly-empty second row; only wraps for
+  // an unusually wide font where even this doesn't fit. ----
+  ctx.font = `600 36px "${brand.font}"`;
+  const chipPadX = 32, chipH = 82, chipGapX = 18, chipGapY = 18;
   const chipRows = [];
   let chipRow = [], chipRowW = 0;
   HERO_FEATURE_BADGES.forEach(text => {
@@ -1414,18 +1426,6 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     by += chipH + chipGapY;
   });
   let contentBottom = by - chipGapY;
-
-  // ---- Optional product-type label — a prominent secondary line (e.g. a
-  // set/edition callout), not a faint caption, so it reads as clearly as
-  // the badges above it rather than getting lost underneath them. ----
-  if (product.typeDescriptor) {
-    const labelY = contentBottom + 60;
-    ctx.fillStyle = brand.primaryColor;
-    fitSingleLineSpaced(ctx, product.typeDescriptor.toUpperCase(), margin, labelY, {
-      maxWidth: contentW, startSize: 38, minSize: 26, weight: 700, family: brand.font, spacing: 1.5, label: 'Product type label (Hero Cover)',
-    });
-    contentBottom = labelY + 16;
-  }
 
   // ---- Product mockup — 3 uploaded pages fanned into a layered stack
   // instead of a flat screenshot grid, occupying roughly the lower half of
