@@ -27,11 +27,13 @@ const COLOR_SCHEMES = [
   { id: 'burgundy', name: 'Burgundy', primary: '#8c2f39', accent: '#e8d5d7' },
   { id: 'dustyrose', name: 'Dusty Rose', primary: '#b5707a', accent: '#f0e2e4' },
   { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
-  // Seasonal — a dark theme rather than the usual pale-tint one. Flame
-  // Orange reads clearly against the near-black background (contrastText
-  // switches the title/body copy to white automatically); Black anchors
-  // the mood without needing any other template to change.
-  { id: 'halloween', name: 'Halloween', primary: '#ff5404', accent: '#07020a' },
+  // Seasonal — a dark theme rather than the usual pale-tint one. Purple +
+  // orange is the color combo that actually reads as "Halloween" (flat
+  // black + orange alone just reads as generic dark mode), so the
+  // background is Indigo Violet rather than black; Flame Orange still
+  // reads clearly against it (contrastText switches title/body copy to
+  // white automatically).
+  { id: 'halloween', name: 'Halloween', primary: '#ff5404', accent: '#502c76' },
 ];
 
 // =========================================================================
