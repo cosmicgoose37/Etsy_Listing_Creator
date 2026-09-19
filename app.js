@@ -27,13 +27,18 @@ const COLOR_SCHEMES = [
   { id: 'burgundy', name: 'Burgundy', primary: '#8c2f39', accent: '#e8d5d7' },
   { id: 'dustyrose', name: 'Dusty Rose', primary: '#b5707a', accent: '#f0e2e4' },
   { id: 'navy', name: 'Navy', primary: '#2f4a68', accent: '#eaf0f7' },
-  // Seasonal — a dark theme rather than the usual pale-tint one. Purple +
-  // orange is the color combo that actually reads as "Halloween" (flat
-  // black + orange alone just reads as generic dark mode), so the
-  // background is Indigo Violet rather than black; Flame Orange still
-  // reads clearly against it (contrastText switches title/body copy to
-  // white automatically).
-  { id: 'halloween', name: 'Halloween', primary: '#ff5404', accent: '#502c76' },
+  // Seasonal — a dark theme rather than the usual pale-tint one. A single
+  // flat color (even purple+orange) read as too plain, so the background is
+  // a muted dusk gradient spanning 4 stops across the full canvas height
+  // (deep violet -> muted slate blue -> dusty rose -> pumpkin) rather than
+  // 2-3 stops that left most of the warm tone hidden behind content near
+  // the bottom edge. A warm muted gold primary (rather than a neon orange)
+  // keeps the "calming, retro" feel. accent stays the gradient's darkest
+  // stop, since that's what contrastText reads to decide black-vs-white text.
+  {
+    id: 'halloween', name: 'Halloween', primary: '#e0a458', accent: '#3c2a56',
+    backgroundGradient: ['#3c2a56', '#6a5596', '#8a5568', '#96552e'],
+  },
 ];
 
 // =========================================================================
@@ -788,6 +793,26 @@ bindColorHex(els.watermarkColor, els.watermarkColorHex);
 // =========================================================================
 // Generic drawing helpers
 // =========================================================================
+
+// Fills the whole canvas with the scheme's background. Most schemes are a
+// flat pale tint (brand.accentColor), but a scheme can opt into a smooth
+// multi-stop gradient instead by providing backgroundGradient — an array of
+// hex colors, top to bottom — for more depth/variety than a single flat
+// color can give. brand.accentColor still doubles as the color contrastText
+// uses to decide black-vs-white text, so it should match the gradient's
+// dominant/darkest stop for a gradient scheme.
+function paintCanvasBackground(ctx, brand) {
+  if (brand.backgroundGradient && brand.backgroundGradient.length > 1) {
+    const grad = ctx.createLinearGradient(0, 0, 0, SIZE);
+    const stops = brand.backgroundGradient;
+    stops.forEach((color, i) => grad.addColorStop(i / (stops.length - 1), color));
+    ctx.fillStyle = grad;
+  } else {
+    ctx.fillStyle = brand.accentColor;
+  }
+  ctx.fillRect(0, 0, SIZE, SIZE);
+}
+
 function roundRect(ctx, x, y, w, h, r) {
   if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
   ctx.beginPath();
@@ -1180,6 +1205,7 @@ function getBrand() {
     logoImgSrc: null,
     primaryColor: scheme.primary,
     accentColor: scheme.accent,
+    backgroundGradient: scheme.backgroundGradient,
     font: els.fontChoice.value,
   };
 }
@@ -1277,8 +1303,7 @@ function drawHeroMockupDoc(ctx, img, watermark, cx, cy, h, rotationDeg, surfaceC
 }
 
 function drawChecklistHero(ctx, brand, product, images, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 120;
   const contentW = SIZE - margin * 2;
@@ -1481,8 +1506,7 @@ const SHOWCASE_CARDS = [
 ];
 
 function drawIncludedShowcase(ctx, brand, product, images, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
@@ -1717,8 +1741,7 @@ const SIZE_GUIDE_CARDS = [
 ];
 
 function drawSizeGuide(ctx, brand, product, images, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
@@ -1885,8 +1908,7 @@ const PRINT_STYLE_CARDS = [
 ];
 
 function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
@@ -2071,8 +2093,7 @@ const EASY_STEPS_CARDS = [
 ];
 
 function drawEasySteps(ctx, brand, product) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
@@ -2273,8 +2294,7 @@ const CHECKLIST_GUIDE_COLUMNS = [
 ];
 
 function drawChecklistGuide(ctx, brand, product, images, watermark) {
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
@@ -2458,8 +2478,7 @@ function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
 
 function drawDownloadReady(ctx, brand, product) {
   const DOWNLOAD_READY_STEPS = getDownloadReadySteps(product.zipFileCount);
-  ctx.fillStyle = brand.accentColor;
-  ctx.fillRect(0, 0, SIZE, SIZE);
+  paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
   const margin = 100;
   const contentW = SIZE - margin * 2;
