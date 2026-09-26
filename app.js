@@ -1845,7 +1845,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
       wrapText(ctx, opt.accentBadge, ribbonX + ribbonW / 2, ribbonY + 64, ribbonW - 24, 18, 'center');
     }
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = '#1f1b17';
     ctx.globalAlpha = 0.65;
     ctx.font = `500 28px "${brand.font}"`;
     ctx.textAlign = 'center';
@@ -2017,11 +2017,11 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.textAlign = 'center';
     ctx.fillText(c.badge, cx, badgeY + badgeH / 2 + 8);
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = '#1f1b17';
     ctx.font = `600 32px "${brand.font}"`;
     ctx.fillText(c.caption, cx, badgeY + badgeH + 46);
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = '#1f1b17';
     ctx.globalAlpha = 0.6;
     ctx.font = `500 26px "${brand.font}"`;
     ctx.fillText(c.note, cx, badgeY + badgeH + 84);
@@ -2213,7 +2213,7 @@ function drawEasySteps(ctx, brand, product) {
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = '#1f1b17';
       fitLines(ctx, bullet, textX, by, {
         maxWidth: textMaxW, maxLines: 2, startSize: 32, minSize: 21, step: 2, weight: 500, family: brand.font, label: 'List item',
       });
@@ -2408,7 +2408,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
       ctx.fill();
       ctx.globalAlpha = 1;
 
-      ctx.fillStyle = textColor;
+      ctx.fillStyle = '#1f1b17';
       fitLines(ctx, bullet, textX, by, {
         maxWidth: textMaxW, maxLines: 2, startSize: 29, minSize: 20, step: 2, weight: 500, family: brand.font, label: 'List item',
       });
@@ -2545,7 +2545,7 @@ function drawDownloadReady(ctx, brand, product) {
     ctx.textAlign = 'left';
     ctx.fillText(step.heading, textX, cy - 13);
 
-    ctx.fillStyle = textColor;
+    ctx.fillStyle = '#1f1b17';
     ctx.globalAlpha = 0.75;
     ctx.font = `500 30px "${brand.font}"`;
     wrapText(ctx, step.desc, textX, cy + 28, textMaxW, 36, 'left');
