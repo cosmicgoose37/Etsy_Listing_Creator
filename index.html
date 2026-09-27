@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1790549380" />
+<link rel="stylesheet" href="style.css?v=1790550166" />
 </head>
 <body>
 <header class="topbar">
@@ -248,6 +248,10 @@ Instant Digital Download"></textarea>
             <input type="range" id="watermarkOpacity" min="5" max="60" value="30" />
           </label>
 
+          <label>Text size <span class="hint" id="watermarkSizeLabel">100%</span>
+            <input type="range" id="watermarkSize" min="50" max="150" value="100" step="5" />
+          </label>
+
           <label>Apply to <span class="hint">(real product previews only — text-only slides are never watermarked)</span></label>
           <div class="badge-options" id="watermarkTargets">
             <label class="chip"><input type="checkbox" value="hero" checked> Hero Cover</label>
@@ -288,6 +292,6 @@ Instant Digital Download"></textarea>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-<script src="app.js?v=1790549380"></script>
+<script src="app.js?v=1790550166"></script>
 </body>
 </html>

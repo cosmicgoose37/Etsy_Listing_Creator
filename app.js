@@ -165,6 +165,8 @@ const els = {
   watermarkColorHex: document.getElementById('watermarkColorHex'),
   watermarkOpacity: document.getElementById('watermarkOpacity'),
   watermarkOpacityLabel: document.getElementById('watermarkOpacityLabel'),
+  watermarkSize: document.getElementById('watermarkSize'),
+  watermarkSizeLabel: document.getElementById('watermarkSizeLabel'),
   watermarkTargets: document.getElementById('watermarkTargets'),
 };
 
@@ -226,6 +228,7 @@ function defaultProfile(name) {
     watermarkStyle: 'tiled',
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
+    watermarkSize: 100,
     watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide'],
   };
 }
@@ -320,6 +323,8 @@ function applyProfileToForm(p) {
   els.watermarkColorHex.value = els.watermarkColor.value.toUpperCase();
   els.watermarkOpacity.value = p.watermarkOpacity != null ? p.watermarkOpacity : 30;
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
+  els.watermarkSize.value = p.watermarkSize != null ? p.watermarkSize : 100;
+  els.watermarkSizeLabel.textContent = `${els.watermarkSize.value}%`;
   const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide']);
   els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = targets.has(cb.value);
@@ -336,6 +341,7 @@ function persistFormToActiveProfile() {
   p.watermarkStyle = els.watermarkStyle.value;
   p.watermarkColor = els.watermarkColor.value;
   p.watermarkOpacity = Number(els.watermarkOpacity.value);
+  p.watermarkSize = Number(els.watermarkSize.value);
   p.watermarkTargets = [...els.watermarkTargets.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
   saveProfilesState();
 }
@@ -400,6 +406,11 @@ els.watermarkEnabled.addEventListener('change', () => {
 
 els.watermarkOpacity.addEventListener('input', () => {
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
+  persistFormToActiveProfile();
+});
+
+els.watermarkSize.addEventListener('input', () => {
+  els.watermarkSizeLabel.textContent = `${els.watermarkSize.value}%`;
   persistFormToActiveProfile();
 });
 
@@ -1150,19 +1161,20 @@ function drawWatermark(ctx, text, opts, bounds) {
   if (!text) return;
   bounds = bounds || { x: 0, y: 0, w: SIZE, h: SIZE };
   const minDim = Math.min(bounds.w, bounds.h);
+  const sizeScale = opts.sizeScale || 1;
   ctx.save();
   ctx.fillStyle = opts.color;
   ctx.globalAlpha = opts.opacity;
 
   if (opts.style === 'corner') {
-    const fontSize = Math.max(16, Math.min(34, minDim * 0.07));
+    const fontSize = Math.max(16, Math.min(34, minDim * 0.055)) * sizeScale;
     const margin = Math.max(14, Math.min(50, minDim * 0.08));
     ctx.font = `600 ${fontSize}px sans-serif`;
     ctx.textAlign = 'right';
     ctx.textBaseline = 'bottom';
     ctx.fillText(text, bounds.x + bounds.w - margin, bounds.y + bounds.h - margin);
   } else {
-    const fontSize = Math.max(20, Math.min(48, minDim * 0.14));
+    const fontSize = Math.max(16, Math.min(40, minDim * 0.11)) * sizeScale;
     ctx.font = `700 ${fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -1191,6 +1203,7 @@ function getWatermarkConfig(brand) {
     style: els.watermarkStyle.value,
     color: els.watermarkColor.value,
     opacity: Number(els.watermarkOpacity.value) / 100,
+    sizeScale: Number(els.watermarkSize.value) / 100,
     targets,
   };
 }
