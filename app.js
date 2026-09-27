@@ -1730,7 +1730,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 // card labels/descriptions/badges, and the highlight box never change);
 // only the 3 layout-preview images differ, one per card size.
 const SIZE_GUIDE_CARDS = [
-  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', caption: '9 cards/page', accentBadge: 'REGULAR CARD SIZE' },
+  { key: 'size9', n: '9', label: 'FULL SIZE', desc: 'Regular trading card size', caption: '9 cards/page' },
   { key: 'size16', n: '16', label: 'COMPACT', desc: 'Smaller layout • saves paper', caption: '16 cards/page' },
   { key: 'size25', n: '25', label: 'EXTRA COMPACT', desc: 'Most compact • maximum efficiency', caption: '25 cards/page' },
 ];
@@ -1822,28 +1822,6 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
     ctx.lineWidth = 2;
     roundRect(ctx, imgX, imgY, imgW, imgH, 12);
     ctx.stroke();
-
-    // A bold corner "1:1 REGULAR CARD SIZE" ribbon for the size that
-    // matches a real trading card — a genuinely useful selling point that
-    // deserves to stand out, not blend in as a subtle inline pill.
-    if (opt.accentBadge) {
-      const ribbonW = 168, ribbonH = 100, ribbonInset = 16;
-      const ribbonX = imgX + imgW - ribbonW - ribbonInset, ribbonY = imgY + ribbonInset;
-      ctx.save();
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      roundRect(ctx, ribbonX + 4, ribbonY + 5, ribbonW, ribbonH, 14);
-      ctx.fill();
-      ctx.restore();
-      ctx.fillStyle = brand.primaryColor;
-      roundRect(ctx, ribbonX, ribbonY, ribbonW, ribbonH, 14);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.font = `700 34px "${brand.font}"`;
-      ctx.fillText('1:1', ribbonX + ribbonW / 2, ribbonY + 42);
-      ctx.font = `700 15px "${brand.font}"`;
-      wrapText(ctx, opt.accentBadge, ribbonX + ribbonW / 2, ribbonY + 64, ribbonW - 24, 18, 'center');
-    }
 
     ctx.fillStyle = '#1f1b17';
     ctx.globalAlpha = 0.65;
