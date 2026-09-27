@@ -1568,7 +1568,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   // cards below off the canvas. ----
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.7;
-  const subtitle = `A complete ${product.name} toolkit for planning and tracking your binder.`;
+  const subtitle = `Your complete ${product.name} toolkit.`;
   const subtitleBottom = fitLines(ctx, subtitle, margin, 416, {
     maxWidth: contentW, maxLines: 2, startSize: 38, minSize: 26, step: 2, weight: 500, family: brand.font, label: 'Product name (Everything Included subtitle)',
   }).bottom;
@@ -2066,15 +2066,15 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 const EASY_STEPS_CARDS = [
   {
     n: '1', heading: 'CHOOSE',
-    bullets: ['Pick Color or Greyscale', 'Choose 9, 16, or 25 cards/page', 'Print only the version you want'],
+    bullets: ['Color or Greyscale', '9, 16, or 25 per page', 'Print only what you need'],
   },
   {
     n: '2', heading: 'PRINT + CUT',
-    bullets: ['Print your selected placeholder pages', 'Cut along the placeholder edges', 'Print at 100% / Actual Size — turn off Fit to Page'],
+    bullets: ['Print your placeholder pages', 'Cut along the edges', 'Use 100% / Actual Size'],
   },
   {
     n: '3', heading: 'PLACE IN BINDER',
-    bullets: ['Slip placeholders into empty binder pockets', 'See exactly which cards you still need', 'Replace placeholders as you collect the real cards'],
+    bullets: ['Slip into binder pockets', 'See what you still need', 'Swap in real cards as you collect'],
   },
 ];
 
@@ -2229,7 +2229,7 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.75;
   ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Replace each placeholder with the real card as your binder grows.', SIZE / 2, boxTop + 195);
+  ctx.fillText('Replace placeholders as your collection grows.', SIZE / 2, boxTop + 195);
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
@@ -2453,12 +2453,12 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 // A function rather than a plain constant so the ZIP step can pluralize
 // correctly based on the seller's own "Number of ZIP files" setting.
 function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
-  const zipPhrase = zipCount === 1 ? `the downloaded ${zipFileWord(zipCount)}` : `all ${zipCount} downloaded ${zipFileWord(zipCount)}`;
+  const zipPhrase = zipCount === 1 ? zipFileWord(zipCount) : `${zipCount} ${zipFileWord(zipCount)}`;
   return [
-    { n: '1', heading: 'DOWNLOAD', desc: 'Access your digital files from Etsy.' },
-    { n: '2', heading: 'UNZIP', desc: `Open ${zipPhrase}.` },
-    { n: '3', heading: 'CHOOSE VERSION', desc: 'Pick color or greyscale, your preferred size, and the checklist.' },
-    { n: '4', heading: 'START COLLECTING', desc: 'Print your placeholders and/or use the checklist digitally.' },
+    { n: '1', heading: 'DOWNLOAD', desc: 'Get your files from Etsy.' },
+    { n: '2', heading: 'UNZIP', desc: `Open the ${zipPhrase}.` },
+    { n: '3', heading: 'CHOOSE VERSION', desc: 'Color, greyscale, size, checklist.' },
+    { n: '4', heading: 'START COLLECTING', desc: 'Print and/or use it digitally.' },
   ];
 }
 
@@ -2575,7 +2575,7 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
   ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('You do not need to print every file — just choose the version you want.', SIZE / 2, boxTop + 150);
+  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 150);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
