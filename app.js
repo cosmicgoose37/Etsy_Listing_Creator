@@ -52,7 +52,7 @@ const COLOR_SCHEMES = [
 const PLACEHOLDER_SIZES = [9, 16, 25];
 const PLACEHOLDER_SIZES_LIST = PLACEHOLDER_SIZES.join(', ').replace(/, ([^,]*)$/, ' or $1');
 const IS_DIGITAL_PRODUCT = true;
-const DEFAULT_ZIP_FILE_COUNT = 1;
+const DEFAULT_ZIP_FILE_COUNT = PLACEHOLDER_SIZES.length;
 const DIGITAL_DISCLAIMER = 'Digital product only • No physical item will be shipped';
 
 function zipFileWord(count) {
@@ -2453,7 +2453,8 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 // A function rather than a plain constant so the ZIP step can pluralize
 // correctly based on the seller's own "Number of ZIP files" setting.
 function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
-  const zipPhrase = zipCount === 1 ? zipFileWord(zipCount) : `${zipCount} ${zipFileWord(zipCount)}`;
+  const perSize = zipCount === PLACEHOLDER_SIZES.length ? ' (one per size)' : '';
+  const zipPhrase = (zipCount === 1 ? zipFileWord(zipCount) : `${zipCount} ${zipFileWord(zipCount)}`) + perSize;
   return [
     { n: '1', heading: 'DOWNLOAD', desc: 'Get your files from Etsy.' },
     { n: '2', heading: 'UNZIP', desc: `Open the ${zipPhrase}.` },
