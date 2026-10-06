@@ -39,6 +39,15 @@ const COLOR_SCHEMES = [
     id: 'halloween', name: 'Halloween', primary: '#fd8d10', accent: '#07020a',
     backgroundGradient: ['#07020a', '#502c76', '#8267d0', '#c93f02'],
   },
+  // Seasonal, but a light, muted take on Halloween's layout: dusty blue ->
+  // sage -> beige -> soft mustard, with burnt orange as the primary. Muted
+  // colors can't carry white text, so accent is a light stop that makes
+  // contrastText pick dark text; the burnt orange stays readable on both the
+  // gradient and the white cards.
+  {
+    id: 'autumn', name: 'Autumn', primary: '#9a4a22', accent: '#eadcc3',
+    backgroundGradient: ['#bccbd3', '#c9d3b8', '#eadcc3', '#e9c98c'],
+  },
 ];
 
 // =========================================================================
