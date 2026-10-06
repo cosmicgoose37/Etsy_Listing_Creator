@@ -1269,7 +1269,14 @@ const HERO_FEATURE_BADGES = [
 // flagship color preview up front. Any slot without an upload yet falls
 // back to a plain placeholder card, so the mockup still renders with
 // anywhere from 0 to 3 of these present.
-const HERO_MOCKUP_BACK_OFFSET = 0.32; // fraction of the front doc's width
+const HERO_MOCKUP_BACK_OFFSET = 0.62; // fraction of the front doc's width
+const HERO_MOCKUP_BACK_TILT = 6; // degrees each back page leans outward
+// The pages are drawn larger than the space under the text, so they run off
+// the bottom edge (and the back pages off the sides): the cards on them stay
+// recognisable at Etsy's small search-thumbnail size, which matters more
+// than showing each page whole.
+const HERO_MOCKUP_ZOOM = 1.45; // front page height / space under the text
+const HERO_MOCKUP_SIDE_BLEED = 200; // px the stack may run past each side edge
 
 // A page's own aspect ratio, clamped to a sane range so one unusually
 // extreme upload can't distort the mockup — falls back to a neutral
@@ -1449,8 +1456,8 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   let contentBottom = by - chipGapY;
 
   // ---- Product mockup — 3 uploaded pages fanned into a layered stack
-  // instead of a flat screenshot grid, occupying roughly the lower half of
-  // the cover. The top follows the content above it (so a short title
+  // instead of a flat screenshot grid, filling the lower half of the cover
+  // and running off its bottom edge. The top follows the content above it (so a short title
   // leaves the mockup more room), but never shrinks past MIN_MOCKUP_H even
   // in the worst case of a maximally long title + subtitle + 2 badge rows. ----
   const mockupBottom = SIZE - margin - 10;
@@ -1473,12 +1480,12 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
   // would throw the whole stack off-center if only the front card's center
   // were centered on the canvas. Instead, the group's actual bounding box
   // (all 3 cards' real edges, front and back) is what gets centered, with
-  // a scale-down fallback so an extreme combination shrinks to fit inside
-  // the margins rather than clipping off the edge.
+  // a scale-down fallback so the back pages never run more than
+  // HERO_MOCKUP_SIDE_BLEED past the canvas edges.
   let mockupScale = 1;
   let frontH, backH, frontW, checklistW, greyW, sideOffsetX, leftEdge, rightEdge;
   for (let pass = 0; pass < 2; pass++) {
-    frontH = mockupH * 0.9 * mockupScale;
+    frontH = mockupH * HERO_MOCKUP_ZOOM * mockupScale;
     backH = frontH * 0.86;
     frontW = frontH * heroDocAspect(images.color);
     checklistW = backH * heroDocAspect(images.checklist);
@@ -1487,7 +1494,7 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     leftEdge = Math.min(-sideOffsetX - checklistW / 2, -frontW / 2);
     rightEdge = Math.max(sideOffsetX + greyW / 2, frontW / 2);
     const groupW = rightEdge - leftEdge;
-    const maxGroupW = contentW - 80;
+    const maxGroupW = SIZE + HERO_MOCKUP_SIDE_BLEED * 2;
     if (pass === 0 && groupW > maxGroupW) {
       mockupScale = maxGroupW / groupW;
     } else {
@@ -1495,12 +1502,14 @@ function drawChecklistHero(ctx, brand, product, images, watermark) {
     }
   }
   const groupOriginX = mockupCx - (leftEdge + rightEdge) / 2;
-  const backCy = mockupCy - mockupH * 0.015;
-  const frontCy = mockupCy + mockupH * 0.01;
+  // Pinned by the top edge rather than centered, since the bottom runs off
+  // the canvas; the back pages sit slightly lower so their tops peek out.
+  const frontCy = mockupTop + 10 + frontH / 2;
+  const backCy = frontCy + 70;
   const surfaceColor = '#fcfbf9';
 
-  drawHeroMockupDoc(ctx, images.checklist, watermark, groupOriginX - sideOffsetX, backCy, backH, -4.5, surfaceColor);
-  drawHeroMockupDoc(ctx, images.grey, watermark, groupOriginX + sideOffsetX, backCy, backH, 4.5, surfaceColor);
+  drawHeroMockupDoc(ctx, images.checklist, watermark, groupOriginX - sideOffsetX, backCy, backH, -HERO_MOCKUP_BACK_TILT, surfaceColor);
+  drawHeroMockupDoc(ctx, images.grey, watermark, groupOriginX + sideOffsetX, backCy, backH, HERO_MOCKUP_BACK_TILT, surfaceColor);
   drawHeroMockupDoc(ctx, images.color, watermark, groupOriginX, frontCy, frontH, 0, surfaceColor);
 }
 
