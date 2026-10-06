@@ -595,7 +595,7 @@ els.clearCachedImagesBtn.addEventListener('click', () => {
 function missingChecklistImageLabels() {
   const missing = [];
   if (!checklistImages.checklist) missing.push('Checklist Screenshot');
-  if (!checklistImages.color) missing.push('Color Placeholders Preview');
+  if (!checklistImages.color) missing.push('Colour Placeholders Preview');
   if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
   if (!checklistImages.size9) missing.push('9 Cards/Page Layout Preview');
   if (!checklistImages.size16) missing.push('16 Cards/Page Layout Preview');
@@ -607,7 +607,7 @@ function missingChecklistImageLabels() {
 // isn't "editable in Canva" or "no prep"). Types not listed here show every
 // badge — this is an allowlist only for types that need it trimmed down.
 const BADGE_ALLOWLIST_BY_TYPE = {
-  checklist: ['Instant Download', 'Printable', 'Black & White + Color'],
+  checklist: ['Instant Download', 'Printable', 'Black & White + Colour'],
 };
 
 function syncBadgeVisibility() {
@@ -673,7 +673,10 @@ function applyTypeContent(type) {
   els.bullets.value = saved.bullets || '';
   els.customBadge.value = saved.customBadge || '';
   els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
-  const checkedSet = new Set(saved.badges || []);
+  // Badges saved before the British-spelling change still restore.
+  const checkedSet = new Set((saved.badges || []).map(b => (
+    b === 'Black & White + Color' ? 'Black & White + Colour' : b
+  )));
   els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = checkedSet.has(cb.value);
   });
@@ -1247,7 +1250,7 @@ function getProduct() {
 // reason to ask the user to retype them or risk them saying something else.
 const HERO_FEATURE_BADGES = [
   `${PLACEHOLDER_SIZES.join(' • ')} PER PAGE`,
-  'COLOR + INK-SAVER',
+  'COLOUR + INK-SAVER',
   'FILLABLE CHECKLIST',
   'INSTANT DOWNLOAD',
 ];
@@ -1505,11 +1508,11 @@ const SHOWCASE_SIZE_OPTIONS = [
 // image, which already covers how to use the download.
 const SHOWCASE_FILE_INVENTORY = [
   'Fillable checklist',
-  ...PLACEHOLDER_SIZES.map(n => `${n}/page Color + Greyscale`),
+  ...PLACEHOLDER_SIZES.map(n => `${n}/page Colour + Greyscale`),
 ];
 const SHOWCASE_CARDS = [
   { key: 'checklist', title: 'Fillable Checklist', desc: 'Use digitally or print it' },
-  { key: 'color', title: 'Color Placeholders', desc: 'Included in all 3 sizes' },
+  { key: 'color', title: 'Colour Placeholders', desc: 'Included in all 3 sizes' },
   { key: 'grey', title: 'Greyscale Placeholders', desc: 'Saves printer ink' },
 ];
 
@@ -1856,7 +1859,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
   ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('ALL 3 SIZES INCLUDED IN COLOR + GREYSCALE', SIZE / 2, boxTop + 66);
+  ctx.fillText('ALL 3 SIZES INCLUDED IN COLOUR + GREYSCALE', SIZE / 2, boxTop + 66);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
@@ -1889,7 +1892,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 // subtitle, card labels/descriptions/badges/notes, and the highlight box
 // never change); only the 2 preview images differ, one per print style.
 const PRINT_STYLE_CARDS = [
-  { key: 'color', title: 'COLOR', subtitle: 'Full-color placeholders', badge: 'FULL COLOR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
+  { key: 'color', title: 'COLOUR', subtitle: 'Full-colour placeholders', badge: 'FULL COLOUR', caption: 'Bright, visual binder planning', note: 'Available in 9 • 16 • 25 cards/page' },
   { key: 'grey', title: 'GREYSCALE', subtitle: 'Ink-friendly placeholders', badge: 'INK FRIENDLY', caption: 'Saves printer ink on everyday pages', note: 'Available in 9 • 16 • 25 cards/page' },
 ];
 
@@ -2066,7 +2069,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 const EASY_STEPS_CARDS = [
   {
     n: '1', heading: 'CHOOSE',
-    bullets: ['Color or Greyscale', '9, 16, or 25 per page', 'Print only what you need'],
+    bullets: ['Colour or Greyscale', '9, 16, or 25 per page', 'Print only what you need'],
   },
   {
     n: '2', heading: 'PRINT + CUT',
@@ -2458,7 +2461,7 @@ function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
   return [
     { n: '1', heading: 'DOWNLOAD', desc: 'Get your files from Etsy.' },
     { n: '2', heading: 'UNZIP', desc: `Open the ${zipPhrase}.` },
-    { n: '3', heading: 'CHOOSE VERSION', desc: 'Color, greyscale, size, checklist.' },
+    { n: '3', heading: 'CHOOSE VERSION', desc: 'Colour, greyscale, size, checklist.' },
     { n: '4', heading: 'START COLLECTING', desc: 'Print and/or use it digitally.' },
   ];
 }
@@ -2623,7 +2626,7 @@ const BADGE_TAG_MAP = {
   'no prep': 'no prep',
   'print & go': 'print and go',
   'answer key included': 'answer key',
-  'black & white + color': 'bw and color',
+  'black & white + colour': 'bw and color',
   'google slides included': 'google slides',
   'common core aligned': 'common core',
 };
@@ -2803,7 +2806,7 @@ function downloadCanvas(canvas, name) {
 // full, but with a lot of background padding around it — worth flagging so
 // the user can swap in a closer-fitting image if that's not what they want.
 const CHECKLIST_IMAGE_LABELS = {
-  checklist: 'Checklist Screenshot', color: 'Color Placeholders Preview', grey: 'Greyscale Placeholders Preview',
+  checklist: 'Checklist Screenshot', color: 'Colour Placeholders Preview', grey: 'Greyscale Placeholders Preview',
   size9: '9 Cards/Page Layout Preview', size16: '16 Cards/Page Layout Preview', size25: '25 Cards/Page Layout Preview',
 };
 function checkImageAspectRatios() {
