@@ -48,6 +48,14 @@ const COLOR_SCHEMES = [
     id: 'autumn', name: 'Autumn', primary: '#9a4a22', accent: '#eadcc3',
     backgroundGradient: ['#bccbd3', '#c9d3b8', '#eadcc3', '#e9c98c'],
   },
+  // Colourful but still muted: four distinct dusty hues (blue -> lavender ->
+  // pink -> peach) with a plum primary. Like Autumn it's a light theme, so
+  // accent is a light stop that gives dark text, and the plum stays readable
+  // on the gradient and the white cards (8:1 on white).
+  {
+    id: 'wildflower', name: 'Wildflower', primary: '#7a3a63', accent: '#eec1cb',
+    backgroundGradient: ['#b9d1d6', '#c9c3e3', '#eec1cb', '#f2cfa3'],
+  },
 ];
 
 // =========================================================================
