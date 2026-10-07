@@ -898,6 +898,22 @@ function drawContain(ctx, x, y, w, h, img, bgColor = '#ffffff') {
   ctx.drawImage(img, dx, dy, dw, dh);
 }
 
+// Zoomed crop: fills the box with one region of the image. focus.x/y are
+// that region's top-left and focus.w its width, as fractions of the image;
+// its height follows the box's aspect ratio. Clamped to stay inside the
+// image, so an upload with unexpected proportions is never stretched.
+function drawFocus(ctx, x, y, w, h, img, focus) {
+  let sw = img.width * focus.w;
+  let sh = sw * (h / w);
+  if (sh > img.height) {
+    sh = img.height;
+    sw = sh * (w / h);
+  }
+  const sx = Math.max(0, Math.min(img.width - sw, img.width * focus.x));
+  const sy = Math.max(0, Math.min(img.height - sh, img.height * focus.y));
+  ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+}
+
 // Pure word-wrap: measures with whatever font is already set on ctx and
 // returns the line array without drawing anything, so callers can check
 // how many lines a piece of text will need before committing to draw it.
@@ -1534,6 +1550,13 @@ const SHOWCASE_CARDS = [
   { key: 'grey', title: 'Greyscale Placeholders', desc: 'Saves printer ink' },
 ];
 
+// The checklist page is a 3-column grid of small rows, so even cropped to
+// fill its card every row was unreadable. Instead the card zooms into the
+// top of the first column, so shoppers can see what each row records (card
+// name, set symbol and code, variant, rarity, set, number and date).
+// Fractions of the page, matching the exported checklist PDF's layout.
+const SHOWCASE_CHECKLIST_FOCUS = { x: 0.055, y: 0.105, w: 0.3 };
+
 function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   paintCanvasBackground(ctx, brand);
   const textColor = contrastText(brand.accentColor);
@@ -1620,11 +1643,16 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[card.key];
     if (img) {
-      // The checklist screenshot tends to have a lot of white margin
-      // around it, which looked like empty space at this card size —
-      // crop-to-fill instead of letterboxing so it actually reads.
       if (card.key === 'checklist') {
-        drawCover(ctx, imgX, imgY, imgW, imgH, img);
+        drawFocus(ctx, imgX, imgY, imgW, imgH, img, SHOWCASE_CHECKLIST_FOCUS);
+        // Fade the cut-off last row into the card, so it reads as the list
+        // continuing rather than a clipped line.
+        const fadeH = 110;
+        const fade = ctx.createLinearGradient(0, imgY + imgH - fadeH, 0, imgY + imgH);
+        fade.addColorStop(0, 'rgba(255,255,255,0)');
+        fade.addColorStop(1, '#ffffff');
+        ctx.fillStyle = fade;
+        ctx.fillRect(imgX, imgY + imgH - fadeH, imgW, fadeH);
       } else {
         drawContain(ctx, imgX, imgY, imgW, imgH, img);
       }
