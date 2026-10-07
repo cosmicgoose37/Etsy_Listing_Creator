@@ -2502,8 +2502,19 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 // A function rather than a plain constant so the ZIP step can pluralize
 // correctly based on the seller's own "Number of ZIP files" setting.
 function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
-  const perSize = zipCount === PLACEHOLDER_SIZES.length ? ' (one per size)' : '';
-  const zipPhrase = (zipCount === 1 ? zipFileWord(zipCount) : `${zipCount} ${zipFileWord(zipCount)}`) + perSize;
+  if (zipCount === PLACEHOLDER_SIZES.length) {
+    // One ZIP per size (the standard packaging) — the size is picked by
+    // choosing which ZIP to open, before unzipping ever reveals the
+    // Colour/Greyscale choice inside it. A different step order and count
+    // than the generic single-bundle flow below. ----
+    return [
+      { n: '1', heading: 'DOWNLOAD', desc: `Get your ${zipCount + 1} files from Etsy.` },
+      { n: '2', heading: 'CHOOSE SIZE', desc: `Pick the ZIP for ${PLACEHOLDER_SIZES_LIST} per page.` },
+      { n: '3', heading: 'UNZIP', desc: 'Open it for Colour + Greyscale.' },
+      { n: '4', heading: 'START COLLECTING', desc: 'Print and/or use the checklist digitally.' },
+    ];
+  }
+  const zipPhrase = zipCount === 1 ? zipFileWord(zipCount) : `${zipCount} ${zipFileWord(zipCount)}`;
   return [
     { n: '1', heading: 'DOWNLOAD', desc: 'Get your files from Etsy.' },
     { n: '2', heading: 'UNZIP', desc: `Open the ${zipPhrase}.` },
