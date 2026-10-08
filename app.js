@@ -2168,18 +2168,26 @@ function drawEasySteps(ctx, brand, product) {
 
   // ---- "Print Tip" badge, top right — keeps this image entirely focused
   // on usage instead of repeating the download message already covered
-  // elsewhere in the listing. ----
+  // elsewhere in the listing. A defined border and a darker subtext than
+  // before keep it legible even on pale/muted color schemes where a
+  // low-alpha fill alone reads as washed out. ----
   ctx.fillStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.12;
+  ctx.globalAlpha = 0.16;
   roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
   ctx.fill();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.3;
+  ctx.lineWidth = 2;
+  roundRect(ctx, badgeX, badgeY, badgeW, badgeH, 20);
+  ctx.stroke();
   ctx.globalAlpha = 1;
   ctx.fillStyle = brand.primaryColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'left';
   badgeTitleLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeTitleTop + i * badgeTitleLineH));
   ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.75;
+  ctx.globalAlpha = 0.9;
   ctx.font = `500 28px "${brand.font}"`;
   ctx.fillText('100% / Actual Size', badgeX + badgePadX, badgeY + badgeSubY);
   ctx.globalAlpha = 1;
