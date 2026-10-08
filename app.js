@@ -2276,10 +2276,10 @@ function drawEasySteps(ctx, brand, product) {
     });
   });
 
-  // ---- Highlighted note box — taller and with more top clearance than
-  // before, absorbing the height freed up by the shorter step cards above. ----
-  const boxTop = cardsTop + cardH + 90;
-  const boxH = 370;
+  // ---- Highlighted note box — sized to close the gap to the footer now
+  // that the cards sit higher up the canvas. ----
+  const boxTop = cardsTop + cardH + 130;
+  const boxH = 450;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -2289,18 +2289,18 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 135);
+  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 165);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.75;
   ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Replace placeholders as your collection grows.', SIZE / 2, boxTop + 195);
+  ctx.fillText('Replace placeholders as your collection grows.', SIZE / 2, boxTop + 237);
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.6;
   ctx.font = `500 26px "${brand.font}"`;
-  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 255);
+  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 310);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
@@ -2382,7 +2382,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
   // (rather than letterboxed to show the whole page) so buyers can
   // actually see checked and unchecked boxes, not a shrunk-down thumbnail
   // of the entire sheet. ----
-  const imgTop = 560, imgH = 600;
+  const imgTop = 480, imgH = 600;
   ctx.save();
   roundRect(ctx, margin, imgTop, contentW, imgH, 18);
   ctx.clip();
@@ -2576,9 +2576,9 @@ function drawDownloadReady(ctx, brand, product) {
 
   // ---- Four stacked step rows, connected by arrows — sized to fill the
   // space on their own now that there's no closing box below them. ----
-  const rowsTop = 560;
+  const rowsTop = 480;
   const rowH = 200;
-  const rowGap = 70;
+  const rowGap = 95;
   const circleR = 55;
   const circleCx = margin + 82;
   const textX = margin + 176;
