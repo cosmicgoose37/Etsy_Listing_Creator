@@ -1628,7 +1628,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 
   // ---- Three preview cards — sized up from the original 0.72 image ratio
   // so the previews stay legible at Etsy's small/mobile thumbnail size. ----
-  const cardsTop = Math.max(560, subtitleBottom + 40);
+  const cardsTop = Math.max(480, subtitleBottom + 40);
   const cardGap = 28;
   const cardW = (contentW - cardGap * 2) / 3;
   const cardH = 700;
@@ -1686,7 +1686,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
 
   // ---- Bottom info box: sizes + how-to-use, side by side ----
   const boxTop = cardsTop + cardH + 50;
-  const boxH = 480;
+  const boxH = 560;
   const boxBottom = boxTop + boxH;
   ctx.strokeStyle = brand.primaryColor;
   ctx.globalAlpha = 0.3;
@@ -1716,7 +1716,7 @@ function drawIncludedShowcase(ctx, brand, product, images, watermark) {
   const leftColW = contentW / 2 - colPad - 40;
   const circleR = 68;
   const circleGap = (leftColW - circleR * 2 * SHOWCASE_SIZE_OPTIONS.length) / (SHOWCASE_SIZE_OPTIONS.length - 1) + circleR * 2;
-  const circleCy = boxTop + 84 + 150;
+  const circleCy = boxTop + 84 + 175;
   SHOWCASE_SIZE_OPTIONS.forEach((opt, i) => {
     const cx = leftX + circleR + i * circleGap;
     ctx.fillStyle = brand.primaryColor;
@@ -1842,7 +1842,7 @@ function drawSizeGuide(ctx, brand, product, images, watermark) {
 
   // ---- Three size cards — the layout previews are the main selling
   // point, so they're sized up from the original 560px image height. ----
-  const cardsTop = 560;
+  const cardsTop = 480;
   const cardGap = 28;
   const cardW = (contentW - cardGap * 2) / 3;
   const cardH = 1070;
@@ -1986,7 +1986,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   // ---- Two print-style cards — previews enlarged from the original
   // 610px image height (and given a bit more width) since they're the
   // main selling point here. ----
-  const cardsTop = 460;
+  const cardsTop = 390;
   const cardGap = 34;
   const cardW = (contentW - cardGap) / 2;
   const cardH = 1060;
@@ -2076,9 +2076,10 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
     ctx.globalAlpha = 1;
   });
 
-  // ---- Highlighted note box ----
+  // ---- Highlighted note box — grown to close the gap to the footer now
+  // that the cards sit higher up the canvas. ----
   const boxTop = cardsTop + cardH + 50;
-  const boxH = 160;
+  const boxH = 300;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -2088,12 +2089,12 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.fillStyle = textColor;
   ctx.font = `700 40px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 66);
+  ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 124);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
   ctx.font = `500 28px "${brand.font}"`;
-  ctx.fillText('No need to choose before purchase', SIZE / 2, boxTop + 114);
+  ctx.fillText('No need to choose before purchase', SIZE / 2, boxTop + 214);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
