@@ -2566,13 +2566,11 @@ function drawDownloadReady(ctx, brand, product) {
   wrapText(ctx, 'What happens after you purchase.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Four stacked step rows, connected by arrows — shorter than the
-  // original 160px and with larger text, since 2 short lines of copy in a
-  // 5-step flow left each row looking mostly empty. ----
+  // ---- Four stacked step rows, connected by arrows. ----
   const rowsTop = 560;
-  const rowH = 130;
+  const rowH = 150;
   const rowGap = 50;
-  const circleR = 46;
+  const circleR = 50;
   const circleCx = margin + 78;
   const textX = margin + 166;
   const textMaxW = contentW - 206;
@@ -2625,11 +2623,11 @@ function drawDownloadReady(ctx, brand, product) {
     }
   });
 
-  // ---- Highlighted note box — taller and with more clearance above it
-  // than before, so it reads as a deliberate closing callout rather than
-  // leaving a gap where the dropped "Purchase" step used to be. ----
-  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 160;
-  const boxH = 230;
+  // ---- Highlighted note box — sits close behind the steps (matching the
+  // clearance used on the Easy Steps slide) rather than leaving a large gap,
+  // and is taller so it reads as a deliberate closing callout. ----
+  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 90;
+  const boxH = 280;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -2637,14 +2635,14 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
-  ctx.font = `700 44px "${brand.font}"`;
+  ctx.font = `700 48px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 92);
+  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 112);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
-  ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 150);
+  ctx.font = `500 32px "${brand.font}"`;
+  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 180);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
