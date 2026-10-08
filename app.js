@@ -2211,10 +2211,8 @@ function drawEasySteps(ctx, brand, product) {
 
   // ---- Three step cards — shorter than the original 700px, and with
   // larger body text, since the instructions only filled about half of
-  // that height and left the rest as dead space. Some of the height saved
-  // here goes to a bit more breathing room above and below, so it doesn't
-  // just pile up as empty space before the footer instead. ----
-  const cardsTop = 600;
+  // that height and left the rest as dead space. ----
+  const cardsTop = 480;
   const cardGap = 40;
   const cardW = (contentW - cardGap * 2) / 3;
   const cardH = 570;
