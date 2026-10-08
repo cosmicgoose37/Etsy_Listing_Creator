@@ -2625,9 +2625,9 @@ function drawDownloadReady(ctx, brand, product) {
 
   // ---- Highlighted note box — sits close behind the steps (matching the
   // clearance used on the Easy Steps slide) rather than leaving a large gap,
-  // and is taller so it reads as a deliberate closing callout. ----
+  // sized to its own 2 lines of copy rather than stretched to fill space. ----
   const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 90;
-  const boxH = 280;
+  const boxH = 200;
   ctx.fillStyle = brand.primaryColor;
   ctx.globalAlpha = 0.12;
   roundRect(ctx, margin, boxTop, contentW, boxH, 20);
@@ -2637,12 +2637,12 @@ function drawDownloadReady(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.font = `700 48px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 112);
+  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 80);
 
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.65;
   ctx.font = `500 32px "${brand.font}"`;
-  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 180);
+  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 142);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
