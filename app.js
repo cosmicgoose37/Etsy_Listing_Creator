@@ -2143,13 +2143,17 @@ function drawEasySteps(ctx, brand, product) {
 
   // ---- Header — leaves clearance for the corner badge so a long shop
   // name can never run underneath it. Badge height is derived from its own
-  // wrapped title so the subtext always gets a clear gap beneath it. ----
+  // wrapped title and subtext (the subtext spells out the actual fix —
+  // "not Fit to Page" — instead of just the target setting, since that's
+  // the detail that actually prevents mis-sized prints). ----
   const badgeW = 380, badgeX = SIZE - margin - badgeW, badgeY = 56;
-  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46;
+  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46, badgeSubLineH = 34;
   ctx.font = `700 40px "${brand.font}"`;
   const badgeTitleLines = wrapLines(ctx, 'PRINT TIP', badgeW - badgePadX * 2);
+  ctx.font = `500 28px "${brand.font}"`;
+  const badgeSubLines = wrapLines(ctx, 'Print at 100% — not Fit to Page', badgeW - badgePadX * 2);
   const badgeSubY = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 58;
-  const badgeH = badgeSubY + 38;
+  const badgeH = badgeSubY + (badgeSubLines.length - 1) * badgeSubLineH + 38;
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
@@ -2189,7 +2193,7 @@ function drawEasySteps(ctx, brand, product) {
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.9;
   ctx.font = `500 28px "${brand.font}"`;
-  ctx.fillText('100% / Actual Size', badgeX + badgePadX, badgeY + badgeSubY);
+  badgeSubLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeSubY + i * badgeSubLineH));
   ctx.globalAlpha = 1;
 
   // ---- Title (fixed) ----
