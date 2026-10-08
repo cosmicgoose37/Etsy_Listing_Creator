@@ -2566,14 +2566,15 @@ function drawDownloadReady(ctx, brand, product) {
   wrapText(ctx, 'What happens after you purchase.', margin, 416, contentW, 48, 'left');
   ctx.globalAlpha = 1;
 
-  // ---- Four stacked step rows, connected by arrows. ----
+  // ---- Four stacked step rows, connected by arrows — sized to fill the
+  // space on their own now that there's no closing box below them. ----
   const rowsTop = 560;
-  const rowH = 150;
-  const rowGap = 50;
-  const circleR = 50;
-  const circleCx = margin + 78;
-  const textX = margin + 166;
-  const textMaxW = contentW - 206;
+  const rowH = 200;
+  const rowGap = 70;
+  const circleR = 55;
+  const circleCx = margin + 82;
+  const textX = margin + 176;
+  const textMaxW = contentW - 216;
 
   DOWNLOAD_READY_STEPS.forEach((step, i) => {
     const rowTop = rowsTop + i * (rowH + rowGap);
@@ -2594,19 +2595,19 @@ function drawDownloadReady(ctx, brand, product) {
     ctx.fill();
     ctx.globalAlpha = 1;
     ctx.fillStyle = brand.primaryColor;
-    ctx.font = `700 38px "${brand.font}"`;
+    ctx.font = `700 42px "${brand.font}"`;
     ctx.textAlign = 'center';
-    ctx.fillText(step.n, circleCx, cy + 13);
+    ctx.fillText(step.n, circleCx, cy + 14);
 
     ctx.fillStyle = '#1f1b17';
-    ctx.font = `700 33px "${brand.font}"`;
+    ctx.font = `700 37px "${brand.font}"`;
     ctx.textAlign = 'left';
-    ctx.fillText(step.heading, textX, cy - 13);
+    ctx.fillText(step.heading, textX, cy - 16);
 
     ctx.fillStyle = '#1f1b17';
     ctx.globalAlpha = 0.75;
-    ctx.font = `500 30px "${brand.font}"`;
-    wrapText(ctx, step.desc, textX, cy + 28, textMaxW, 36, 'left');
+    ctx.font = `500 33px "${brand.font}"`;
+    wrapText(ctx, step.desc, textX, cy + 34, textMaxW, 40, 'left');
     ctx.globalAlpha = 1;
 
     if (i < DOWNLOAD_READY_STEPS.length - 1) {
@@ -2622,28 +2623,6 @@ function drawDownloadReady(ctx, brand, product) {
       ctx.globalAlpha = 1;
     }
   });
-
-  // ---- Highlighted note box — sits close behind the steps (matching the
-  // clearance used on the Easy Steps slide) rather than leaving a large gap,
-  // sized to its own 2 lines of copy rather than stretched to fill space. ----
-  const boxTop = rowsTop + DOWNLOAD_READY_STEPS.length * (rowH + rowGap) - rowGap + 90;
-  const boxH = 200;
-  ctx.fillStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.12;
-  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 48px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText('PRINT ONLY WHAT YOU NEED', SIZE / 2, boxTop + 80);
-
-  ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.65;
-  ctx.font = `500 32px "${brand.font}"`;
-  ctx.fillText('Just print the version you want.', SIZE / 2, boxTop + 142);
-  ctx.globalAlpha = 1;
 
   // ---- Footer ----
   ctx.fillStyle = textColor;
