@@ -2142,18 +2142,15 @@ function drawEasySteps(ctx, brand, product) {
   const contentW = SIZE - margin * 2;
 
   // ---- Header — leaves clearance for the corner badge so a long shop
-  // name can never run underneath it. Badge height is derived from its own
-  // wrapped title and subtext (the subtext spells out the actual fix —
-  // "not Fit to Page" — instead of just the target setting, since that's
-  // the detail that actually prevents mis-sized prints). ----
-  const badgeW = 380, badgeX = SIZE - margin - badgeW, badgeY = 56;
-  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46, badgeSubLineH = 34;
+  // name can never run underneath it. Badge is wide enough to keep the
+  // subtext on one line (it shrinks to fit rather than wrapping, so it
+  // still holds up under a wider font choice) instead of wrapping. ----
+  const badgeW = 470, badgeX = SIZE - margin - badgeW, badgeY = 56;
+  const badgePadX = 36, badgeTitleTop = 66, badgeTitleLineH = 46;
   ctx.font = `700 40px "${brand.font}"`;
   const badgeTitleLines = wrapLines(ctx, 'PRINT TIP', badgeW - badgePadX * 2);
-  ctx.font = `500 28px "${brand.font}"`;
-  const badgeSubLines = wrapLines(ctx, 'Print at 100% — not Fit to Page', badgeW - badgePadX * 2);
   const badgeSubY = badgeTitleTop + (badgeTitleLines.length - 1) * badgeTitleLineH + 58;
-  const badgeH = badgeSubY + (badgeSubLines.length - 1) * badgeSubLineH + 38;
+  const badgeH = badgeSubY + 38;
   ctx.fillStyle = brand.primaryColor;
   fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
     maxWidth: badgeX - margin - 40, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
@@ -2192,8 +2189,9 @@ function drawEasySteps(ctx, brand, product) {
   badgeTitleLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeTitleTop + i * badgeTitleLineH));
   ctx.fillStyle = textColor;
   ctx.globalAlpha = 0.9;
-  ctx.font = `500 28px "${brand.font}"`;
-  badgeSubLines.forEach((line, i) => ctx.fillText(line, badgeX + badgePadX, badgeY + badgeSubY + i * badgeSubLineH));
+  fitSingleLine(ctx, 'Print at 100% — not Fit to Page', badgeX + badgePadX, badgeY + badgeSubY, {
+    maxWidth: badgeW - badgePadX * 2, startSize: 28, minSize: 18, weight: 500, family: brand.font, label: 'Print tip subtext',
+  });
   ctx.globalAlpha = 1;
 
   // ---- Title (fixed) ----
