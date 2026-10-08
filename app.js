@@ -56,6 +56,16 @@ const COLOR_SCHEMES = [
     id: 'wildflower', name: 'Wildflower', primary: '#7a3a63', accent: '#eec1cb',
     backgroundGradient: ['#b9d1d6', '#c9c3e3', '#eec1cb', '#f2cfa3'],
   },
+  // Painterly and nature-toned rather than bright/saturated — built for
+  // illustrators like Yuka Morii whose Neo-era art reads as soft botanical
+  // scenes (sage greens warming into honey-gold) rather than vivid color.
+  // A deep warm umber primary (like tree bark) stays readable against every
+  // stop and against the white cards; accent is the lightest stop for dark
+  // text.
+  {
+    id: 'botanical', name: 'Botanical', primary: '#6b4a2a', accent: '#e8dcae',
+    backgroundGradient: ['#b9c9a8', '#cdd3a3', '#e8dcae', '#e3b770'],
+  },
 ];
 
 // =========================================================================
