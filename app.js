@@ -1293,7 +1293,7 @@ function getProduct() {
 // reason to ask the user to retype them or risk them saying something else.
 const HERO_FEATURE_BADGES = [
   `${PLACEHOLDER_SIZES.join(' • ')} PER PAGE`,
-  'COLOUR + INK-SAVER',
+  'COLOUR + GREYSCALE',
   'FILLABLE CHECKLIST',
   'INSTANT DOWNLOAD',
 ];
