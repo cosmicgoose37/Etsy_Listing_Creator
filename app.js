@@ -2102,14 +2102,14 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
-  ctx.font = `700 40px "${brand.font}"`;
+  ctx.font = `700 52px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 124);
+  ctx.fillText('YOU GET BOTH VERSIONS', SIZE / 2, boxTop + 135);
 
   ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.65;
-  ctx.font = `500 28px "${brand.font}"`;
-  ctx.fillText('No need to choose before purchase', SIZE / 2, boxTop + 214);
+  ctx.globalAlpha = 0.85;
+  ctx.font = `500 36px "${brand.font}"`;
+  ctx.fillText('No need to choose before purchase', SIZE / 2, boxTop + 210);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
@@ -2303,20 +2303,20 @@ function drawEasySteps(ctx, brand, product) {
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
-  ctx.font = `700 40px "${brand.font}"`;
+  ctx.font = `700 52px "${brand.font}"`;
   ctx.textAlign = 'center';
-  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 165);
+  ctx.fillText('BUILD YOUR COLLECTION AT YOUR OWN PACE', SIZE / 2, boxTop + 175);
 
   ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.75;
-  ctx.font = `500 30px "${brand.font}"`;
-  ctx.fillText('Replace placeholders as your collection grows.', SIZE / 2, boxTop + 237);
+  ctx.globalAlpha = 0.85;
+  ctx.font = `500 38px "${brand.font}"`;
+  ctx.fillText('Replace placeholders as your collection grows.', SIZE / 2, boxTop + 262);
   ctx.globalAlpha = 1;
 
   ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.6;
-  ctx.font = `500 26px "${brand.font}"`;
-  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 310);
+  ctx.globalAlpha = 0.75;
+  ctx.font = `500 32px "${brand.font}"`;
+  ctx.fillText('Simple • Flexible • Easy to print again whenever you need it', SIZE / 2, boxTop + 335);
   ctx.globalAlpha = 1;
 
   // ---- Footer ----
