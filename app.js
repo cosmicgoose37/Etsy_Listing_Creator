@@ -563,29 +563,58 @@ function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts =
   if (persist) saveImageToCache(key, dataUrl);
 }
 
-function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
-  inputEl.addEventListener('change', async () => {
-    const file = inputEl.files[0];
-    if (!file) return;
+async function processChecklistFile(file, key, previewEl, statusEl) {
+  if (!file) return;
 
-    if (isPdfFile(file)) {
-      statusEl.textContent = '— rendering PDF page 1…';
-      try {
-        const dataUrl = await renderPdfFirstPageToDataUrl(file);
-        loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
-      } catch (e) {
-        statusEl.textContent = '— required';
-        console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
-        alert('Could not read that PDF. Please try a different file, or upload an image screenshot instead.');
-      }
-      return;
+  if (isPdfFile(file)) {
+    statusEl.textContent = '— rendering PDF page 1…';
+    try {
+      const dataUrl = await renderPdfFirstPageToDataUrl(file);
+      loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
+    } catch (e) {
+      statusEl.textContent = '— required';
+      console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
+      alert('Could not read that PDF. Please try a different file, or upload an image screenshot instead.');
     }
+    return;
+  }
 
-    const reader = new FileReader();
-    reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
-    reader.readAsDataURL(file);
+  const reader = new FileReader();
+  reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
+  reader.readAsDataURL(file);
+}
+
+function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
+  inputEl.addEventListener('change', () => {
+    processChecklistFile(inputEl.files[0], key, previewEl, statusEl);
+  });
+
+  // Drag-and-drop — the whole label is the drop target (not just the
+  // narrow native input bar), since that's the area people actually aim
+  // a drag at. A native file input DOES accept drops on its own, but only
+  // on its own small rendered box, so a drop anywhere else in the label
+  // (the field's text, its padding) would silently do nothing without this.
+  const dropTarget = inputEl.closest('label') || inputEl;
+  dropTarget.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropTarget.classList.add('drag-over');
+  });
+  dropTarget.addEventListener('dragleave', () => {
+    dropTarget.classList.remove('drag-over');
+  });
+  dropTarget.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropTarget.classList.remove('drag-over');
+    const file = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (file) processChecklistFile(file, key, previewEl, statusEl);
   });
 }
+
+// Safety net: without this, dropping a file anywhere on the page outside
+// an actual drop target (e.g. just slightly off a label) makes the browser
+// navigate away and replace this whole app with the raw dropped file.
+window.addEventListener('dragover', (e) => e.preventDefault());
+window.addEventListener('drop', (e) => e.preventDefault());
 
 bindChecklistImageUpload(els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus, 'checklist');
 bindChecklistImageUpload(els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus, 'color');
