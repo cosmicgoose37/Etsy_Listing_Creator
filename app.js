@@ -575,6 +575,7 @@ function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
         loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
       } catch (e) {
         statusEl.textContent = '— required';
+        console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
         alert('Could not read that PDF. Please try a different file, or upload an image screenshot instead.');
       }
       return;
