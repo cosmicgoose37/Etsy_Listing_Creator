@@ -2139,7 +2139,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 const EASY_STEPS_CARDS = [
   {
     n: '1', heading: 'CHOOSE',
-    bullets: ['Colour or Greyscale', '9, 16, or 25 per page', 'Print only what you need'],
+    bullets: ['9, 16, or 25 per page', 'Colour or Greyscale', 'Print only what you need'],
   },
   {
     n: '2', heading: 'PRINT + CUT',
