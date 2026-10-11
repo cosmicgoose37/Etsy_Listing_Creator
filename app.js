@@ -1,9 +1,5 @@
 const SIZE = 2000;
 
-if (window.pdfjsLib) {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-}
-
 const PROFILES_STORAGE_KEY = 'etsyImageMaker.profiles.v2';
 const OLD_BRAND_STORAGE_KEY = 'etsyImageMaker.brand.v1';
 const THEME_KEY = 'etsyImageMaker.theme';
@@ -532,7 +528,15 @@ function isPdfFile(file) {
 
 // Renders page 1 of a PDF to a PNG data URL at a resolution large enough for
 // the 2000x2000 exports, without ever upscaling past the page's own size.
+// pdf.js loads as an ES module (see index.html) so window.pdfjsLib isn't
+// guaranteed to exist yet at parse time — the worker is configured lazily
+// here, on first actual use, well after that module has finished loading.
+let pdfWorkerConfigured = false;
 async function renderPdfFirstPageToDataUrl(file) {
+  if (!pdfWorkerConfigured) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
+    pdfWorkerConfigured = true;
+  }
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const page = await pdf.getPage(1);
