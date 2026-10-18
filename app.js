@@ -164,12 +164,11 @@ const els = {
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
-  collectionDescriptor: document.getElementById('collectionDescriptor'),
-  bullets: document.getElementById('bullets'),
+  cardCountTotal: document.getElementById('cardCountTotal'),
+  cardCountUnique: document.getElementById('cardCountUnique'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
-  customBadge: document.getElementById('customBadge'),
   zipFileCount: document.getElementById('zipFileCount'),
   gallery: document.getElementById('gallery'),
   emptyState: document.getElementById('emptyState'),
@@ -707,10 +706,10 @@ async function handleQuickSetupFiles(fileList) {
     try {
       const count = await countCardsInPdfFile(checklistFile);
       if (count > 0) {
-        setFieldValue(els.collectionDescriptor, `${count} Cards`);
-        quickSetupLog(`✓ Counted ${count} cards — Collection Descriptor set (add "- X Unique Artworks" yourself if you want that too)`);
+        setFieldValue(els.cardCountTotal, String(count));
+        quickSetupLog(`✓ Counted ${count} cards — Total Card Count set (enter Unique Artwork Count yourself)`);
       } else {
-        quickSetupLog(`! Couldn't find any card entries in ${checklistFile.name} — Collection Descriptor left as-is`);
+        quickSetupLog(`! Couldn't find any card entries in ${checklistFile.name} — Total Card Count left as-is`);
       }
     } catch (e) {
       console.error('Card count extraction failed:', e);
@@ -872,7 +871,8 @@ function syncBadgeVisibility() {
 // of which shop it's for.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
-const DEFAULT_TYPE_CONTENT = { tagline: '', collectionDescriptor: '', bullets: '', customBadge: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
+const DEFAULT_TAGLINE = 'Plan your binder. Track your collection.';
+const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountTotal: '', cardCountUnique: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
 
 function loadTypeContent() {
   try {
@@ -900,9 +900,8 @@ function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
   typeContent[els.productType.value] = {
     tagline: els.tagline.value,
-    collectionDescriptor: els.collectionDescriptor.value,
-    bullets: els.bullets.value,
-    customBadge: els.customBadge.value,
+    cardCountTotal: els.cardCountTotal.value,
+    cardCountUnique: els.cardCountUnique.value,
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
     zipFileCount: els.zipFileCount.value,
   };
@@ -913,10 +912,9 @@ function saveCurrentFieldsToType() {
 function applyTypeContent(type) {
   const saved = typeContent[type] || DEFAULT_TYPE_CONTENT;
   suppressTypeContentSave = true;
-  els.tagline.value = saved.tagline || '';
-  els.collectionDescriptor.value = saved.collectionDescriptor || '';
-  els.bullets.value = saved.bullets || '';
-  els.customBadge.value = saved.customBadge || '';
+  els.tagline.value = saved.tagline || DEFAULT_TAGLINE;
+  els.cardCountTotal.value = saved.cardCountTotal || '';
+  els.cardCountUnique.value = saved.cardCountUnique || '';
   els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
   // Badges saved before the British-spelling change still restore.
   const checkedSet = new Set((saved.badges || []).map(b => (
@@ -937,7 +935,7 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.collectionDescriptor, els.bullets, els.customBadge, els.zipFileCount].forEach(el => {
+[els.tagline, els.cardCountTotal, els.cardCountUnique, els.zipFileCount].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -947,7 +945,7 @@ els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/Collection Descriptor/What's Included/Badges/ZIP count for "${label}"?`)) return;
+  if (!confirm(`Clear saved Tagline/Card Counts/Badges/ZIP count for "${label}"?`)) return;
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
@@ -1488,18 +1486,26 @@ function getBrand() {
 }
 
 
+// Builds the Hero Cover's small type-descriptor label from the two card
+// counts, formatted so either one can be filled in alone.
+function formatCardCountDescriptor() {
+  const total = els.cardCountTotal.value.trim();
+  const unique = els.cardCountUnique.value.trim();
+  if (total && unique) return `${total} Cards - ${unique} Unique Artworks`;
+  if (total) return `${total} Cards`;
+  if (unique) return `${unique} Unique Artworks`;
+  return '';
+}
+
 function getProduct() {
   const badges = [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
-  const custom = els.customBadge.value.trim();
-  if (custom) badges.push(custom);
   return {
     type: els.productType.value,
     name: els.productName.value.trim() || 'Your Product Name',
     gradeLevel: els.gradeLevel.value.trim(),
     subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
-    typeDescriptor: els.collectionDescriptor.value.trim(),
-    bullets: els.bullets.value.split('\n').map(s => s.trim()).filter(Boolean),
+    typeDescriptor: formatCardCountDescriptor(),
     badges,
     zipFileCount: Math.max(1, parseInt(els.zipFileCount.value, 10) || DEFAULT_ZIP_FILE_COUNT),
   };
@@ -2962,7 +2968,6 @@ function generateSEO(brand, product) {
     .map(b => BADGE_TAG_MAP[b.toLowerCase()] || b.toLowerCase())
     .filter(Boolean);
   const taglineNgrams = ngramsFromText(product.tagline, [3, 2]);
-  const bulletNgrams = product.bullets.flatMap(b => ngramsFromText(b, [2, 3]));
   const generic = ['digital download', 'instant download', 'printable pdf'];
 
   const tagPool = [
@@ -2972,7 +2977,6 @@ function generateSEO(brand, product) {
     ...badgeTags,
     ...typeInfo.tags,
     ...taglineNgrams,
-    ...bulletNgrams,
     ...generic,
   ];
   const tags = dedupeCapped(tagPool, 13);
