@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1792349387" />
+<link rel="stylesheet" href="style.css?v=1792350592" />
 </head>
 <body>
 <header class="topbar">
@@ -41,6 +41,15 @@
 <div class="layout">
   <aside class="panel">
     <form id="listingForm" autocomplete="off">
+
+      <section class="field-group">
+        <label class="quick-setup" for="quickSetupFiles">
+          <span class="quick-setup-title">Quick setup — drop all 4 files at once</span>
+          <span class="hint">Your Fillable Checklist PDF + all 3 size ZIPs. Auto-fills shop/product name, card count, and every preview image below from your file names — review before publishing.</span>
+          <input type="file" id="quickSetupFiles" accept=".pdf,.zip,application/pdf,application/zip" multiple />
+          <div class="quick-setup-files" id="quickSetupStatus"></div>
+        </label>
+      </section>
 
       <section class="field-group">
         <h2>Brand</h2>
@@ -199,13 +208,6 @@ Instant Digital Download"></textarea>
           <button type="button" id="clearCachedImagesBtn" class="link-btn">clear remembered images</button>
         </div>
 
-        <label class="quick-setup" for="quickSetupFiles">
-          <span class="quick-setup-title">Quick setup — drop all 4 files at once</span>
-          <span class="hint">Your Fillable Checklist PDF + all 3 size ZIPs. Auto-fills product name, card count, and every preview below from your file names — review before publishing.</span>
-          <input type="file" id="quickSetupFiles" accept=".pdf,.zip,application/pdf,application/zip" multiple />
-          <div class="quick-setup-files" id="quickSetupStatus"></div>
-        </label>
-
         <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
           <input type="file" accept="image/*,application/pdf" id="checklistImgChecklist" />
         </label>
@@ -314,6 +316,6 @@ Instant Digital Download"></textarea>
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   window.pdfjsLib = pdfjsLib;
 </script>
-<script src="app.js?v=1792349387"></script>
+<script src="app.js?v=1792350592"></script>
 </body>
 </html>
