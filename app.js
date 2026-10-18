@@ -137,6 +137,8 @@ const els = {
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
   checklistImagesSection: document.getElementById('checklistImagesSection'),
+  quickSetupFiles: document.getElementById('quickSetupFiles'),
+  quickSetupStatus: document.getElementById('quickSetupStatus'),
   checklistImgChecklist: document.getElementById('checklistImgChecklist'),
   checklistImgChecklistPreview: document.getElementById('checklistImgChecklistPreview'),
   checklistImgChecklistStatus: document.getElementById('checklistImgChecklistStatus'),
@@ -532,12 +534,14 @@ function isPdfFile(file) {
 // guaranteed to exist yet at parse time — the worker is configured lazily
 // here, on first actual use, well after that module has finished loading.
 let pdfWorkerConfigured = false;
-async function renderPdfFirstPageToDataUrl(file) {
+function ensurePdfWorkerConfigured() {
   if (!pdfWorkerConfigured) {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.worker.min.mjs';
     pdfWorkerConfigured = true;
   }
-  const buf = await file.arrayBuffer();
+}
+async function renderPdfFirstPageFromBuffer(buf) {
+  ensurePdfWorkerConfigured();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const page = await pdf.getPage(1);
   const unscaled = page.getViewport({ scale: 1 });
@@ -549,6 +553,28 @@ async function renderPdfFirstPageToDataUrl(file) {
   canvas.height = Math.round(viewport.height);
   await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
   return canvas.toDataURL('image/png');
+}
+async function renderPdfFirstPageToDataUrl(file) {
+  return renderPdfFirstPageFromBuffer(await file.arrayBuffer());
+}
+
+// Counts card entries in a checklist PDF by counting "#123 / 456"-style
+// card-number markers across every page's text content. Relies on the
+// checklist's layout staying consistent — the number pattern is specific
+// enough that it shouldn't false-match anything else in the document.
+async function countCardsInPdfFile(file) {
+  ensurePdfWorkerConfigured();
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  let count = 0;
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const text = content.items.map(it => it.str).join(' ');
+    const matches = text.match(/#\s*\d+\s*\/\s*\d+/g);
+    if (matches) count += matches.length;
+  }
+  return count;
 }
 
 function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts = {}) {
@@ -631,6 +657,164 @@ const CHECKLIST_IMAGE_FIELDS = [
   { key: 'size16', previewEl: els.checklistImgSize16Preview, statusEl: els.checklistImgSize16Status },
   { key: 'size25', previewEl: els.checklistImgSize25Preview, statusEl: els.checklistImgSize25Status },
 ];
+const QUICK_SETUP_FIELD_BY_KEY = Object.fromEntries(CHECKLIST_IMAGE_FIELDS.map(f => [f.key, f]));
+
+// =========================================================================
+// Quick Setup — drop the Fillable Checklist PDF + all 3 size ZIPs at once
+// and auto-fill product name, card count, and every preview image from the
+// file names and PDF contents. Built specifically around the seller's own
+// stable naming convention (NN_Shop_Product_..._EN.ext) rather than a
+// general-purpose parser — if that convention changes, this needs updating
+// to match.
+// =========================================================================
+function setFieldValue(el, value) {
+  el.value = value;
+  el.dispatchEvent(new Event('input', { bubbles: true }));
+  el.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function quickSetupLog(msg) {
+  const line = document.createElement('div');
+  line.textContent = msg;
+  els.quickSetupStatus.appendChild(line);
+}
+
+async function handleQuickSetupFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  els.quickSetupStatus.innerHTML = '';
+  quickSetupLog(`Processing ${files.length} file${files.length === 1 ? '' : 's'}…`);
+
+  const checklistFile = files.find(f => /_Fillable_Checklist_EN\.pdf$/i.test(f.name));
+  const zipFiles = files.filter(f => /\.zip$/i.test(f.name));
+
+  let productName = null;
+  let shopName = null;
+
+  if (checklistFile) {
+    const m = checklistFile.name.match(/^\d+_([A-Za-z0-9]+)_(.+)_Fillable_Checklist_EN\.pdf$/i);
+    if (m) {
+      shopName = m[1];
+      productName = m[2].replace(/_/g, ' ');
+    } else {
+      quickSetupLog(`! ${checklistFile.name} didn't match the expected naming pattern — rendering it anyway, but name/count are skipped`);
+    }
+
+    const field = QUICK_SETUP_FIELD_BY_KEY.checklist;
+    await processChecklistFile(checklistFile, 'checklist', field.previewEl, field.statusEl);
+    quickSetupLog(`✓ ${checklistFile.name} — checklist preview set`);
+
+    try {
+      const count = await countCardsInPdfFile(checklistFile);
+      if (count > 0) {
+        setFieldValue(els.collectionDescriptor, `${count} Cards`);
+        quickSetupLog(`✓ Counted ${count} cards — Collection Descriptor set (add "- X Unique Artworks" yourself if you want that too)`);
+      } else {
+        quickSetupLog(`! Couldn't find any card entries in ${checklistFile.name} — Collection Descriptor left as-is`);
+      }
+    } catch (e) {
+      console.error('Card count extraction failed:', e);
+      quickSetupLog(`! Couldn't read text from ${checklistFile.name} for a card count`);
+    }
+  }
+  files.filter(f => isPdfFile(f) && f !== checklistFile)
+    .forEach(f => quickSetupLog(`! ${f.name} is a PDF but doesn't match "..._Fillable_Checklist_EN.pdf" — skipped`));
+
+  const sizeOrder = { '9': 0, '16': 1, '25': 2 };
+  const parsedZips = zipFiles.map(f => {
+    const m = f.name.match(/^\d+_([A-Za-z0-9]+)_(.+)_Placeholders_(\d+)_Per_Page_EN\.zip$/i);
+    return m ? { file: f, shop: m[1], product: m[2].replace(/_/g, ' '), size: m[3] } : null;
+  }).filter(Boolean).sort((a, b) => (sizeOrder[a.size] ?? 99) - (sizeOrder[b.size] ?? 99));
+
+  zipFiles.filter(f => !parsedZips.some(z => z.file === f))
+    .forEach(f => quickSetupLog(`! ${f.name} didn't match "..._Placeholders_N_Per_Page_EN.zip" — skipped`));
+
+  if (!productName && parsedZips.length) productName = parsedZips[0].product;
+  if (!shopName && parsedZips.length) shopName = parsedZips[0].shop;
+  if (productName) setFieldValue(els.productName, productName);
+  if (shopName && !els.companyName.value.trim()) setFieldValue(els.companyName, shopName);
+
+  let genericColorSet = false, genericGreySet = false;
+  for (const z of parsedZips) {
+    const sizeField = QUICK_SETUP_FIELD_BY_KEY[`size${z.size}`];
+    if (!sizeField) {
+      quickSetupLog(`! ${z.file.name} is for size ${z.size}, which has no preview slot — skipped`);
+      continue;
+    }
+
+    let zip;
+    try {
+      zip = await JSZip.loadAsync(z.file);
+    } catch (e) {
+      console.error('ZIP read failed:', z.file.name, e);
+      quickSetupLog(`! Couldn't open ${z.file.name} as a ZIP`);
+      continue;
+    }
+    const entries = Object.values(zip.files);
+    const colorEntry = entries.find(f => /_Colou?r_EN\.pdf$/i.test(f.name));
+    const greyEntry = entries.find(f => /_Gr[ae]yscale_EN\.pdf$/i.test(f.name));
+
+    if (colorEntry) {
+      try {
+        const dataUrl = await renderPdfFirstPageFromBuffer(await colorEntry.async('arraybuffer'));
+        loadChecklistImageFromDataUrl(dataUrl, `size${z.size}`, sizeField.previewEl, sizeField.statusEl);
+        quickSetupLog(`✓ ${z.file.name} → ${z.size}/page layout preview set`);
+        if (!genericColorSet) {
+          const colorField = QUICK_SETUP_FIELD_BY_KEY.color;
+          loadChecklistImageFromDataUrl(dataUrl, 'color', colorField.previewEl, colorField.statusEl);
+          genericColorSet = true;
+          quickSetupLog(`✓ ${z.file.name} → Colour Placeholders Preview set`);
+        }
+      } catch (e) {
+        console.error('PDF render failed inside zip:', colorEntry.name, e);
+        quickSetupLog(`! Couldn't render ${colorEntry.name} from ${z.file.name}`);
+      }
+    } else {
+      quickSetupLog(`! No "..._Colour_EN.pdf" found inside ${z.file.name}`);
+    }
+
+    if (greyEntry) {
+      try {
+        const dataUrl = await renderPdfFirstPageFromBuffer(await greyEntry.async('arraybuffer'));
+        if (!genericGreySet) {
+          const greyField = QUICK_SETUP_FIELD_BY_KEY.grey;
+          loadChecklistImageFromDataUrl(dataUrl, 'grey', greyField.previewEl, greyField.statusEl);
+          genericGreySet = true;
+          quickSetupLog(`✓ ${z.file.name} → Greyscale Placeholders Preview set`);
+        }
+      } catch (e) {
+        console.error('PDF render failed inside zip:', greyEntry.name, e);
+        quickSetupLog(`! Couldn't render ${greyEntry.name} from ${z.file.name}`);
+      }
+    } else {
+      quickSetupLog(`! No "..._Greyscale_EN.pdf" found inside ${z.file.name}`);
+    }
+  }
+
+  quickSetupLog('Done — double-check the fields below before generating.');
+}
+
+els.quickSetupFiles.addEventListener('change', () => {
+  handleQuickSetupFiles(els.quickSetupFiles.files);
+});
+
+(() => {
+  const dropTarget = els.quickSetupFiles.closest('label');
+  dropTarget.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropTarget.classList.add('drag-over');
+  });
+  dropTarget.addEventListener('dragleave', () => {
+    dropTarget.classList.remove('drag-over');
+  });
+  dropTarget.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropTarget.classList.remove('drag-over');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) {
+      handleQuickSetupFiles(e.dataTransfer.files);
+    }
+  });
+})();
 
 // Restores any previously-uploaded images from the local cache on load, so
 // re-testing (or just reopening the tab) doesn't require re-uploading the
