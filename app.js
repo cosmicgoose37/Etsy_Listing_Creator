@@ -164,7 +164,8 @@ const els = {
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
   tagline: document.getElementById('tagline'),
-  cardCountTotal: document.getElementById('cardCountTotal'),
+  cardCountWithVariants: document.getElementById('cardCountWithVariants'),
+  cardCountNoVariants: document.getElementById('cardCountNoVariants'),
   cardCountUnique: document.getElementById('cardCountUnique'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
@@ -706,10 +707,10 @@ async function handleQuickSetupFiles(fileList) {
     try {
       const count = await countCardsInPdfFile(checklistFile);
       if (count > 0) {
-        setFieldValue(els.cardCountTotal, String(count));
-        quickSetupLog(`✓ Counted ${count} cards — Total Card Count set (enter Unique Artwork Count yourself)`);
+        setFieldValue(els.cardCountWithVariants, String(count));
+        quickSetupLog(`✓ Counted ${count} cards — Total Cards (with variants) set (fill in No Variants / Unique Artworks yourself)`);
       } else {
-        quickSetupLog(`! Couldn't find any card entries in ${checklistFile.name} — Total Card Count left as-is`);
+        quickSetupLog(`! Couldn't find any card entries in ${checklistFile.name} — card counts left as-is`);
       }
     } catch (e) {
       console.error('Card count extraction failed:', e);
@@ -872,7 +873,7 @@ function syncBadgeVisibility() {
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
 const DEFAULT_TAGLINE = 'Plan your binder. Track your collection.';
-const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountTotal: '', cardCountUnique: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
+const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountWithVariants: '', cardCountNoVariants: '', cardCountUnique: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
 
 function loadTypeContent() {
   try {
@@ -900,7 +901,8 @@ function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
   typeContent[els.productType.value] = {
     tagline: els.tagline.value,
-    cardCountTotal: els.cardCountTotal.value,
+    cardCountWithVariants: els.cardCountWithVariants.value,
+    cardCountNoVariants: els.cardCountNoVariants.value,
     cardCountUnique: els.cardCountUnique.value,
     badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
     zipFileCount: els.zipFileCount.value,
@@ -913,7 +915,8 @@ function applyTypeContent(type) {
   const saved = typeContent[type] || DEFAULT_TYPE_CONTENT;
   suppressTypeContentSave = true;
   els.tagline.value = saved.tagline || DEFAULT_TAGLINE;
-  els.cardCountTotal.value = saved.cardCountTotal || '';
+  els.cardCountWithVariants.value = saved.cardCountWithVariants || '';
+  els.cardCountNoVariants.value = saved.cardCountNoVariants || '';
   els.cardCountUnique.value = saved.cardCountUnique || '';
   els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
   // Badges saved before the British-spelling change still restore.
@@ -935,7 +938,7 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.cardCountTotal, els.cardCountUnique, els.zipFileCount].forEach(el => {
+[els.tagline, els.cardCountWithVariants, els.cardCountNoVariants, els.cardCountUnique, els.zipFileCount].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
@@ -1486,15 +1489,17 @@ function getBrand() {
 }
 
 
-// Builds the Hero Cover's small type-descriptor label from the two card
-// counts, formatted so either one can be filled in alone.
+// Builds the Hero Cover's small type-descriptor label from the three card
+// counts, formatted so any subset can be filled in alone.
 function formatCardCountDescriptor() {
-  const total = els.cardCountTotal.value.trim();
+  const withVariants = els.cardCountWithVariants.value.trim();
+  const noVariants = els.cardCountNoVariants.value.trim();
   const unique = els.cardCountUnique.value.trim();
-  if (total && unique) return `${total} Cards - ${unique} Unique Artworks`;
-  if (total) return `${total} Cards`;
-  if (unique) return `${unique} Unique Artworks`;
-  return '';
+  return [
+    withVariants && `${withVariants} Cards`,
+    noVariants && `${noVariants} No Variants`,
+    unique && `${unique} Unique Artworks`,
+  ].filter(Boolean).join(' • ');
 }
 
 function getProduct() {

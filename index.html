@@ -14,8 +14,8 @@
     } catch (e) { /* ignore */ }
   })();
 </script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Playfair+Display:wght@600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Caveat:wght@600;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1792351906" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=1792534996" />
 </head>
 <body>
 <header class="topbar">
@@ -124,10 +124,8 @@
         <label>Font style
           <select id="fontChoice">
             <option value="Poppins">Poppins (clean/modern)</option>
-            <option value="Playfair Display">Playfair Display (elegant serif)</option>
             <option value="Montserrat">Montserrat (bold/minimal)</option>
             <option value="Quicksand">Quicksand (soft/rounded)</option>
-            <option value="Caveat">Caveat (handwritten script)</option>
             <option value="Lora">Lora (classic serif)</option>
             <option value="Bebas Neue">Bebas Neue (display/impact)</option>
           </select>
@@ -169,11 +167,14 @@
           <input type="text" id="tagline" placeholder="e.g. Plan your binder. Track your collection." />
         </label>
 
-        <div class="two-col">
-          <label>Total Card Count <span class="hint">(optional)</span>
-            <input type="number" id="cardCountTotal" min="0" step="1" placeholder="e.g. 441" />
+        <div class="three-col">
+          <label>Total Cards <span class="hint">(with variants, e.g. holo)</span>
+            <input type="number" id="cardCountWithVariants" min="0" step="1" placeholder="e.g. 441" />
           </label>
-          <label>Unique Artwork Count <span class="hint">(optional)</span>
+          <label>Total Cards <span class="hint">(no variants)</span>
+            <input type="number" id="cardCountNoVariants" min="0" step="1" placeholder="e.g. 234" />
+          </label>
+          <label>Unique Artworks <span class="hint">(optional)</span>
             <input type="number" id="cardCountUnique" min="0" step="1" placeholder="e.g. 207" />
           </label>
         </div>
@@ -310,6 +311,6 @@
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   window.pdfjsLib = pdfjsLib;
 </script>
-<script src="app.js?v=1792351906"></script>
+<script src="app.js?v=1792534996"></script>
 </body>
 </html>
