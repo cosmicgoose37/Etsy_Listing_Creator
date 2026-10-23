@@ -683,19 +683,35 @@ async function handleQuickSetupFiles(fileList) {
   const files = Array.from(fileList || []);
   if (!files.length) return;
   els.quickSetupStatus.innerHTML = '';
-  quickSetupLog(`Processing ${files.length} file${files.length === 1 ? '' : 's'}…`);
+  // A dedicated, updated-in-place line rather than an appended log entry —
+  // otherwise "Processing…" just sits there forever once everything is
+  // actually done, since nothing ever replaces or removes it.
+  const progressLine = document.createElement('div');
+  progressLine.style.fontWeight = '700';
+  progressLine.textContent = `Processing ${files.length} file${files.length === 1 ? '' : 's'}…`;
+  els.quickSetupStatus.appendChild(progressLine);
 
-  const checklistFile = files.find(f => /_Fillable_Checklist_EN\.pdf$/i.test(f.name));
+  // Etsy's file-name character limit means the shop-name segment and the
+  // "_EN" language suffix sometimes get dropped to stay under it — both are
+  // optional here. Shop name is no longer parsed out as its own capture
+  // group (too unreliable once it's inconsistently present/absent); instead,
+  // if the already-saved Company Name happens to still be the leading
+  // segment (i.e. this particular file name was short enough to keep it),
+  // it's stripped off so it doesn't end up duplicated into the product name.
+  const checklistFile = files.find(f => /_Fillable_Checklist(?:_EN)?\.pdf$/i.test(f.name));
   const zipFiles = files.filter(f => /\.zip$/i.test(f.name));
+  const shop = els.companyName.value.trim();
+  const shopPrefixRe = shop
+    ? new RegExp('^' + shop.replace(/\s+/g, '_').replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '_', 'i')
+    : null;
+  const stripShopPrefix = (raw) => shopPrefixRe ? raw.replace(shopPrefixRe, '') : raw;
 
   let productName = null;
-  let shopName = null;
 
   if (checklistFile) {
-    const m = checklistFile.name.match(/^\d+_([A-Za-z0-9]+)_(.+)_Fillable_Checklist_EN\.pdf$/i);
+    const m = checklistFile.name.match(/^\d+_(.+?)_Fillable_Checklist(?:_EN)?\.pdf$/i);
     if (m) {
-      shopName = m[1];
-      productName = m[2].replace(/_/g, ' ');
+      productName = stripShopPrefix(m[1]).replace(/_/g, ' ');
     } else {
       quickSetupLog(`! ${checklistFile.name} didn't match the expected naming pattern — rendering it anyway, but name/count are skipped`);
     }
@@ -718,21 +734,19 @@ async function handleQuickSetupFiles(fileList) {
     }
   }
   files.filter(f => isPdfFile(f) && f !== checklistFile)
-    .forEach(f => quickSetupLog(`! ${f.name} is a PDF but doesn't match "..._Fillable_Checklist_EN.pdf" — skipped`));
+    .forEach(f => quickSetupLog(`! ${f.name} is a PDF but doesn't match "..._Fillable_Checklist.pdf" — skipped`));
 
   const sizeOrder = { '9': 0, '16': 1, '25': 2 };
   const parsedZips = zipFiles.map(f => {
-    const m = f.name.match(/^\d+_([A-Za-z0-9]+)_(.+)_Placeholders_(\d+)_Per_Page_EN\.zip$/i);
-    return m ? { file: f, shop: m[1], product: m[2].replace(/_/g, ' '), size: m[3] } : null;
+    const m = f.name.match(/^\d+_(.+?)_Placeholders_(\d+)_Per_Page(?:_EN)?\.zip$/i);
+    return m ? { file: f, product: stripShopPrefix(m[1]).replace(/_/g, ' '), size: m[2] } : null;
   }).filter(Boolean).sort((a, b) => (sizeOrder[a.size] ?? 99) - (sizeOrder[b.size] ?? 99));
 
   zipFiles.filter(f => !parsedZips.some(z => z.file === f))
-    .forEach(f => quickSetupLog(`! ${f.name} didn't match "..._Placeholders_N_Per_Page_EN.zip" — skipped`));
+    .forEach(f => quickSetupLog(`! ${f.name} didn't match "..._Placeholders_N_Per_Page.zip" — skipped`));
 
   if (!productName && parsedZips.length) productName = parsedZips[0].product;
-  if (!shopName && parsedZips.length) shopName = parsedZips[0].shop;
   if (productName) setFieldValue(els.productName, productName);
-  if (shopName && !els.companyName.value.trim()) setFieldValue(els.companyName, shopName);
 
   let genericColorSet = false, genericGreySet = false;
   for (const z of parsedZips) {
@@ -751,8 +765,8 @@ async function handleQuickSetupFiles(fileList) {
       continue;
     }
     const entries = Object.values(zip.files);
-    const colorEntry = entries.find(f => /_Colou?r_EN\.pdf$/i.test(f.name));
-    const greyEntry = entries.find(f => /_Gr[ae]yscale_EN\.pdf$/i.test(f.name));
+    const colorEntry = entries.find(f => /_Colou?r(?:_EN)?\.pdf$/i.test(f.name));
+    const greyEntry = entries.find(f => /_Gr[ae]yscale(?:_EN)?\.pdf$/i.test(f.name));
 
     if (colorEntry) {
       try {
@@ -770,7 +784,7 @@ async function handleQuickSetupFiles(fileList) {
         quickSetupLog(`! Couldn't render ${colorEntry.name} from ${z.file.name}`);
       }
     } else {
-      quickSetupLog(`! No "..._Colour_EN.pdf" found inside ${z.file.name}`);
+      quickSetupLog(`! No "..._Colour.pdf" found inside ${z.file.name}`);
     }
 
     if (greyEntry) {
@@ -787,11 +801,11 @@ async function handleQuickSetupFiles(fileList) {
         quickSetupLog(`! Couldn't render ${greyEntry.name} from ${z.file.name}`);
       }
     } else {
-      quickSetupLog(`! No "..._Greyscale_EN.pdf" found inside ${z.file.name}`);
+      quickSetupLog(`! No "..._Greyscale.pdf" found inside ${z.file.name}`);
     }
   }
 
-  quickSetupLog('Done — double-check the fields below before generating.');
+  progressLine.textContent = `Done — processed ${files.length} file${files.length === 1 ? '' : 's'}. Double-check the fields below before generating.`;
 }
 
 els.quickSetupFiles.addEventListener('change', () => {
