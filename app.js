@@ -2406,7 +2406,7 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 // page is rows of 3 side-by-side entries, so one entry is ~1/3 of the
 // page width and a thin slice of its height. If either layout changes,
 // these need retuning to still land on one entry.
-const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.30, h: 0.048 };
+const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.335, h: 0.048 };
 const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
 const CLOSEUP_CARDS = [
   {
