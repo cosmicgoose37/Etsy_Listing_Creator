@@ -522,9 +522,12 @@ const checklistImages = { checklist: null, color: null, grey: null, size9: null,
 
 // Per-card label positions read from the checklist and colour-placeholder
 // PDFs, used only by the "Up Close" crop to find the SAME card in both
-// files (see resolvePlaceholderFocus). Null until a PDF for that key has
-// been processed and its text successfully read.
-const closeupCardMatches = { checklist: null, color: null };
+// files and size itself to the real layout (see resolvePlaceholderFocus /
+// resolveChecklistFocus). 'size9' is tracked separately from 'color' so
+// the crop can always prefer the highest-resolution (9-per-page) source
+// even if 'color' ends up holding a different size. Null until a PDF for
+// that key has been processed and its text successfully read.
+const closeupCardMatches = { checklist: null, color: null, size9: null };
 
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
@@ -659,7 +662,7 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     try {
       const dataUrl = await renderPdfFirstPageToDataUrl(file);
       loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
-      if (key === 'checklist' || key === 'color') {
+      if (key === 'checklist' || key === 'color' || key === 'size9') {
         closeupCardMatches[key] = await extractCardMatches(await file.arrayBuffer());
       }
     } catch (e) {
@@ -670,7 +673,7 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     return;
   }
 
-  if (key === 'checklist' || key === 'color') closeupCardMatches[key] = null;
+  if (key === 'checklist' || key === 'color' || key === 'size9') closeupCardMatches[key] = null;
   const reader = new FileReader();
   reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
   reader.readAsDataURL(file);
@@ -842,12 +845,15 @@ async function handleQuickSetupFiles(fileList) {
         const dataUrl = await renderPdfFirstPageFromBuffer(await colorEntry.async('arraybuffer'));
         loadChecklistImageFromDataUrl(dataUrl, `size${z.size}`, sizeField.previewEl, sizeField.statusEl);
         quickSetupLog(`✓ ${z.file.name} → ${z.size}/page layout preview set`);
+        if (z.size === '9') {
+          closeupCardMatches.size9 = await extractCardMatches(await colorEntry.async('arraybuffer'));
+        }
         if (!genericColorSet) {
           const colorField = QUICK_SETUP_FIELD_BY_KEY.color;
           loadChecklistImageFromDataUrl(dataUrl, 'color', colorField.previewEl, colorField.statusEl);
           genericColorSet = true;
           quickSetupLog(`✓ ${z.file.name} → Colour Placeholders Preview set`);
-          closeupCardMatches.color = await extractCardMatches(await colorEntry.async('arraybuffer'));
+          closeupCardMatches.color = z.size === '9' ? closeupCardMatches.size9 : await extractCardMatches(await colorEntry.async('arraybuffer'));
         }
       } catch (e) {
         console.error('PDF render failed inside zip:', colorEntry.name, e);
@@ -918,6 +924,9 @@ els.clearCachedImagesBtn.addEventListener('click', () => {
     previewEl.innerHTML = '';
     statusEl.textContent = '— required';
   });
+  closeupCardMatches.checklist = null;
+  closeupCardMatches.color = null;
+  closeupCardMatches.size9 = null;
   clearImageCache();
 });
 
@@ -2469,31 +2478,74 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 // "Up Close" guide — a tight, zoomed crop of exactly one checklist entry
 // and one placeholder card, so buyers can see precisely what information
 // and format they're getting before they buy, not just a shrunk full-page
-// thumbnail. Focus rectangles (x/y/w/h as fractions of the uploaded image
-// — see drawFocusContain) are tuned to this seller's current layout: the
-// placeholder page is a 3x3 grid, so one card is ~1/3 x ~1/3 of the page
-// (portrait-shaped, matching the page's own proportions); the checklist
-// page is rows of 3 side-by-side entries, so one entry is ~1/3 of the
-// page width and a thin slice of its height. If either layout changes,
-// these need retuning to still land on one entry.
+// thumbnail. These are only the LAST-RESORT fallback sizes (x/y/w/h as
+// fractions of the uploaded image — see drawFocusContain), used when a
+// file's actual entry spacing can't be measured (see inferGridPitch) —
+// normally the crop sizes itself to the real file instead, since
+// different checklist products use different column counts (2 vs 3, etc).
 const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.335, h: 0.048 };
 const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
 
-// The checklist crop above always shows the checklist's own first entry
-// (fixed position). The placeholder page is a SEPARATE file that usually
-// lists cards in a different order, so "first cell" there is very often a
-// different card. When both PDFs' card-number labels were readable (see
+// Measures the real spacing between repeating entries (checklist columns,
+// or placeholder grid cells) from the actual positions of their card-
+// number labels, instead of guessing a fixed fraction — sellers' products
+// vary (a 2-column vs. 3-column checklist, a 3x3 vs. other placeholder
+// grid), so a hardcoded size only ever matches one of them and clips or
+// under-fills the rest. Takes the smallest positive gap between distinct
+// x/y positions as the column/row pitch; either comes back null if there
+// isn't enough variation on that axis to measure (e.g. a single-column
+// checklist, or only one card found).
+function inferGridPitch(matches) {
+  if (!matches || matches.length < 2) return { colPitch: null, rowPitch: null };
+  const round = (n) => Math.round(n * 1000) / 1000;
+  const minPositiveGap = (values) => {
+    const sorted = [...new Set(values.map(round))].sort((a, b) => a - b);
+    let min = null;
+    for (let i = 1; i < sorted.length; i++) {
+      const gap = sorted[i] - sorted[i - 1];
+      if (gap > 0.02 && (min === null || gap < min)) min = gap;
+    }
+    return min;
+  };
+  return {
+    colPitch: minPositiveGap(matches.map(m => m.xFrac)),
+    rowPitch: minPositiveGap(matches.map(m => m.yFracTopDown)),
+  };
+}
+
+// The checklist crop above always shows the checklist's own first entry.
+// Its width/height are sized from the real gap to the next column/row
+// (see inferGridPitch) when there's more than one entry to measure from,
+// falling back to the static default otherwise.
+function resolveChecklistFocus() {
+  const matches = closeupCardMatches.checklist;
+  const pitch = inferGridPitch(matches);
+  return {
+    x: CLOSEUP_CHECKLIST_FOCUS.x,
+    y: CLOSEUP_CHECKLIST_FOCUS.y,
+    w: pitch.colPitch ? pitch.colPitch * 0.90 : CLOSEUP_CHECKLIST_FOCUS.w,
+    h: pitch.rowPitch ? pitch.rowPitch * 0.90 : CLOSEUP_CHECKLIST_FOCUS.h,
+  };
+}
+
+// The placeholder page is a SEPARATE file that usually lists cards in a
+// different order than the checklist, so "first cell" there is very often
+// a different card. When both PDFs' card-number labels were readable (see
 // extractCardMatches), this instead finds wherever the checklist's first
 // card actually sits on the placeholder page, so both panels show the same
-// card. The placeholder page's own first card is used as a calibration
+// card — preferring the 9-per-page file specifically for the best image
+// quality, since it has fewer, larger cards per page than the 16/25
+// layouts. The placeholder page's own first card is used as a calibration
 // reference — whatever offset ITS number label sits at relative to the
 // tuned default crop box is assumed to hold for every other card on the
-// same templated page, so no assumption about grid spacing is needed.
+// same templated page — and the box itself is sized from the real
+// measured cell spacing (see inferGridPitch) rather than a fixed guess, so
+// it doesn't clip a card that turns out to need more room than expected.
 // Falls back to the static default whenever a file isn't a PDF, has no
 // readable card numbers, or simply doesn't contain a matching card.
 function resolvePlaceholderFocus() {
   const checklistMatches = closeupCardMatches.checklist;
-  const colorMatches = closeupCardMatches.color;
+  const colorMatches = closeupCardMatches.size9 || closeupCardMatches.color;
   if (!checklistMatches || !checklistMatches.length || !colorMatches || !colorMatches.length) {
     return CLOSEUP_PLACEHOLDER_FOCUS;
   }
@@ -2504,7 +2556,9 @@ function resolvePlaceholderFocus() {
   const calib = colorMatches[0];
   const offsetX = CLOSEUP_PLACEHOLDER_FOCUS.x - calib.xFrac;
   const offsetY = CLOSEUP_PLACEHOLDER_FOCUS.y - calib.yFracTopDown;
-  const w = CLOSEUP_PLACEHOLDER_FOCUS.w, h = CLOSEUP_PLACEHOLDER_FOCUS.h;
+  const pitch = inferGridPitch(colorMatches);
+  const w = pitch.colPitch ? pitch.colPitch * 0.90 : CLOSEUP_PLACEHOLDER_FOCUS.w;
+  const h = pitch.rowPitch ? pitch.rowPitch * 0.90 : CLOSEUP_PLACEHOLDER_FOCUS.h;
   return {
     x: Math.max(0, Math.min(1 - w, matched.xFrac + offsetX)),
     y: Math.max(0, Math.min(1 - h, matched.yFracTopDown + offsetY)),
@@ -2590,9 +2644,12 @@ function drawCloseUpDetail(ctx, brand, product, images, watermark) {
     ctx.save();
     roundRect(ctx, imgX, imgY, imgW, imgH, 14);
     ctx.clip();
-    const img = images[c.key];
+    // The placeholder panel prefers the 9-per-page image specifically (see
+    // resolvePlaceholderFocus) since it has fewer, larger cards per page
+    // than the 16/25 layouts, so a single-card crop stays sharp.
+    const img = c.key === 'color' ? (images.size9 || images.color) : images[c.key];
     if (img) {
-      const focus = c.key === 'color' ? resolvePlaceholderFocus() : c.focus;
+      const focus = c.key === 'color' ? resolvePlaceholderFocus() : resolveChecklistFocus();
       drawFocusContain(ctx, imgX, imgY, imgW, imgH, img, focus, '#f1ece4');
     } else {
       ctx.fillStyle = '#f1ece4';
