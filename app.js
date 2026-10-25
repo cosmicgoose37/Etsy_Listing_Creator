@@ -520,6 +520,12 @@ async function clearImageCache() {
 // =========================================================================
 const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null };
 
+// Per-card label positions read from the checklist and colour-placeholder
+// PDFs, used only by the "Up Close" crop to find the SAME card in both
+// files (see resolvePlaceholderFocus). Null until a PDF for that key has
+// been processed and its text successfully read.
+const closeupCardMatches = { checklist: null, color: null };
+
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
 }
@@ -577,6 +583,62 @@ async function countCardsInPdfFile(file) {
   return count;
 }
 
+// Reads every "#NNN / NNN" card-number label on page 1 along with its
+// on-page position, so "Up Close" can find a specific card by identity
+// instead of just assuming position (0,0) in both files. A label is often
+// split across several text runs (e.g. "#53", "/", "75"), so items are
+// first grouped into lines by rounded y-position (same page row), same as
+// the whole-page join countCardsInPdfFile already relies on — but a grid
+// or multi-column row puts SEVERAL entries on that same line, so each line
+// is then split into clusters by x-gap (a big gap means a new column, a
+// small one means still the same label) and matched independently, instead
+// of taking only the first match on the line. Returns matches sorted
+// top-to-bottom, left-to-right, or null if the file isn't a PDF pdf.js can
+// read text from.
+async function extractCardMatches(buf) {
+  try {
+    ensurePdfWorkerConfigured();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    const page = await pdf.getPage(1);
+    const viewport = page.getViewport({ scale: 1 });
+    const content = await page.getTextContent();
+    const lines = new Map();
+    for (const item of content.items) {
+      const x = item.transform[4], y = item.transform[5];
+      const lineKey = Math.round(y / 2) * 2;
+      if (!lines.has(lineKey)) lines.set(lineKey, []);
+      lines.get(lineKey).push({ x, y, str: item.str, width: item.width || 0 });
+    }
+    const COLUMN_GAP = 30; // pt gap beyond which items are a new column, not the same label
+    const matches = [];
+    for (const items of lines.values()) {
+      items.sort((a, b) => a.x - b.x);
+      const clusters = [[items[0]]];
+      for (let i = 1; i < items.length; i++) {
+        const prev = items[i - 1];
+        if (items[i].x - (prev.x + prev.width) > COLUMN_GAP) clusters.push([]);
+        clusters[clusters.length - 1].push(items[i]);
+      }
+      for (const cluster of clusters) {
+        const text = cluster.map(it => it.str).join(' ');
+        const m = text.match(/#\s*\d+\s*\/\s*\d+/);
+        if (m) {
+          matches.push({
+            numberStr: m[0].replace(/\s+/g, ''),
+            xFrac: Math.max(0, Math.min(1, cluster[0].x / viewport.width)),
+            yFracTopDown: Math.max(0, Math.min(1, (viewport.height - cluster[0].y) / viewport.height)),
+          });
+        }
+      }
+    }
+    matches.sort((a, b) => (a.yFracTopDown - b.yFracTopDown) || (a.xFrac - b.xFrac));
+    return matches;
+  } catch (e) {
+    console.error('Card-position extraction failed:', e);
+    return null;
+  }
+}
+
 function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts = {}) {
   const { persist = true, restored = false } = opts;
   const img = new Image();
@@ -597,6 +659,9 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     try {
       const dataUrl = await renderPdfFirstPageToDataUrl(file);
       loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
+      if (key === 'checklist' || key === 'color') {
+        closeupCardMatches[key] = await extractCardMatches(await file.arrayBuffer());
+      }
     } catch (e) {
       statusEl.textContent = '— required';
       console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
@@ -605,6 +670,7 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     return;
   }
 
+  if (key === 'checklist' || key === 'color') closeupCardMatches[key] = null;
   const reader = new FileReader();
   reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
   reader.readAsDataURL(file);
@@ -778,6 +844,7 @@ async function handleQuickSetupFiles(fileList) {
           loadChecklistImageFromDataUrl(dataUrl, 'color', colorField.previewEl, colorField.statusEl);
           genericColorSet = true;
           quickSetupLog(`✓ ${z.file.name} → Colour Placeholders Preview set`);
+          closeupCardMatches.color = await extractCardMatches(await colorEntry.async('arraybuffer'));
         }
       } catch (e) {
         console.error('PDF render failed inside zip:', colorEntry.name, e);
@@ -2408,6 +2475,40 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 // these need retuning to still land on one entry.
 const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.335, h: 0.048 };
 const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
+
+// The checklist crop above always shows the checklist's own first entry
+// (fixed position). The placeholder page is a SEPARATE file that usually
+// lists cards in a different order, so "first cell" there is very often a
+// different card. When both PDFs' card-number labels were readable (see
+// extractCardMatches), this instead finds wherever the checklist's first
+// card actually sits on the placeholder page, so both panels show the same
+// card. The placeholder page's own first card is used as a calibration
+// reference — whatever offset ITS number label sits at relative to the
+// tuned default crop box is assumed to hold for every other card on the
+// same templated page, so no assumption about grid spacing is needed.
+// Falls back to the static default whenever a file isn't a PDF, has no
+// readable card numbers, or simply doesn't contain a matching card.
+function resolvePlaceholderFocus() {
+  const checklistMatches = closeupCardMatches.checklist;
+  const colorMatches = closeupCardMatches.color;
+  if (!checklistMatches || !checklistMatches.length || !colorMatches || !colorMatches.length) {
+    return CLOSEUP_PLACEHOLDER_FOCUS;
+  }
+  const target = checklistMatches[0].numberStr;
+  const matched = colorMatches.find(m => m.numberStr === target);
+  if (!matched) return CLOSEUP_PLACEHOLDER_FOCUS;
+
+  const calib = colorMatches[0];
+  const offsetX = CLOSEUP_PLACEHOLDER_FOCUS.x - calib.xFrac;
+  const offsetY = CLOSEUP_PLACEHOLDER_FOCUS.y - calib.yFracTopDown;
+  const w = CLOSEUP_PLACEHOLDER_FOCUS.w, h = CLOSEUP_PLACEHOLDER_FOCUS.h;
+  return {
+    x: Math.max(0, Math.min(1 - w, matched.xFrac + offsetX)),
+    y: Math.max(0, Math.min(1 - h, matched.yFracTopDown + offsetY)),
+    w, h,
+  };
+}
+
 const CLOSEUP_CARDS = [
   {
     key: 'checklist', title: 'CHECKLIST ENTRY', subtitle: 'One entry, actual detail',
@@ -2488,7 +2589,8 @@ function drawCloseUpDetail(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[c.key];
     if (img) {
-      drawFocusContain(ctx, imgX, imgY, imgW, imgH, img, c.focus, '#f1ece4');
+      const focus = c.key === 'color' ? resolvePlaceholderFocus() : c.focus;
+      drawFocusContain(ctx, imgX, imgY, imgW, imgH, img, focus, '#f1ece4');
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
