@@ -1165,6 +1165,31 @@ function drawFocus(ctx, x, y, w, h, img, focus) {
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
 }
 
+// Zoomed crop with an explicit width AND height fraction, unlike drawFocus
+// (whose height always follows the target box's own aspect ratio). Needed
+// when the cropped region's natural shape — e.g. one portrait cell of a
+// grid — doesn't match the box it's drawn into: the crop is fit into the
+// box "contain"-style (whole crop visible, letterboxed if its proportions
+// don't match the box) rather than stretched to exactly fill it.
+function drawFocusContain(ctx, x, y, w, h, img, focus, bgColor) {
+  if (bgColor) {
+    ctx.fillStyle = bgColor;
+    ctx.fillRect(x, y, w, h);
+  }
+  const sx = Math.max(0, Math.min(img.width, img.width * focus.x));
+  const sy = Math.max(0, Math.min(img.height, img.height * focus.y));
+  const sw = Math.min(img.width - sx, img.width * focus.w);
+  const sh = Math.min(img.height - sy, img.height * focus.h);
+  const cropAr = sw / sh, boxAr = w / h;
+  let dw, dh, dx, dy;
+  if (cropAr > boxAr) {
+    dw = w; dh = w / cropAr; dx = x; dy = y + (h - dh) / 2;
+  } else {
+    dh = h; dw = h * cropAr; dx = x + (w - dw) / 2; dy = y;
+  }
+  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+}
+
 // Pure word-wrap: measures with whatever font is already set on ctx and
 // returns the line array without drawing anything, so callers can check
 // how many lines a piece of text will need before committing to draw it.
@@ -2374,12 +2399,15 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 // "Up Close" guide — a tight, zoomed crop of exactly one checklist entry
 // and one placeholder card, so buyers can see precisely what information
 // and format they're getting before they buy, not just a shrunk full-page
-// thumbnail. Focus rectangles (x/y/w as fractions of the uploaded image —
-// see drawFocus) are tuned to this seller's current 3-column checklist and
-// placeholder grid layout; if that layout changes, these need retuning to
-// still land on a single entry/card.
-const CLOSEUP_CHECKLIST_FOCUS = { x: 0.04, y: 0.09, w: 0.30 };
-const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.04, y: 0.06, w: 0.30 };
+// thumbnail. Focus rectangles (x/y/w/h as fractions of the uploaded image
+// — see drawFocusContain) are tuned to this seller's current layout: the
+// placeholder page is a 3x3 grid, so one card is ~1/3 x ~1/3 of the page
+// (portrait-shaped, matching the page's own proportions); the checklist
+// page is a stacked list of compact single-line rows, so one entry is
+// nearly the full page width but only a thin slice of its height. If
+// either layout changes, these need retuning to still land on one entry.
+const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.93, h: 0.048 };
+const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
 const CLOSEUP_CARDS = [
   {
     key: 'checklist', title: 'CHECKLIST ENTRY', subtitle: 'One entry, actual detail',
@@ -2460,7 +2488,7 @@ function drawCloseUpDetail(ctx, brand, product, images, watermark) {
     ctx.clip();
     const img = images[c.key];
     if (img) {
-      drawFocus(ctx, imgX, imgY, imgW, imgH, img, c.focus);
+      drawFocusContain(ctx, imgX, imgY, imgW, imgH, img, c.focus, '#f1ece4');
     } else {
       ctx.fillStyle = '#f1ece4';
       ctx.fillRect(imgX, imgY, imgW, imgH);
