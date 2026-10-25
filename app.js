@@ -2403,10 +2403,10 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
 // — see drawFocusContain) are tuned to this seller's current layout: the
 // placeholder page is a 3x3 grid, so one card is ~1/3 x ~1/3 of the page
 // (portrait-shaped, matching the page's own proportions); the checklist
-// page is a stacked list of compact single-line rows, so one entry is
-// nearly the full page width but only a thin slice of its height. If
-// either layout changes, these need retuning to still land on one entry.
-const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.93, h: 0.048 };
+// page is rows of 3 side-by-side entries, so one entry is ~1/3 of the
+// page width and a thin slice of its height. If either layout changes,
+// these need retuning to still land on one entry.
+const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.30, h: 0.048 };
 const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
 const CLOSEUP_CARDS = [
   {
