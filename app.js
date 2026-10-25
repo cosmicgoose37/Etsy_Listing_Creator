@@ -254,7 +254,7 @@ function defaultProfile(name) {
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
     watermarkSize: 100,
-    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'closeup', 'checklistguide'],
   };
 }
 
@@ -350,7 +350,7 @@ function applyProfileToForm(p) {
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
   els.watermarkSize.value = p.watermarkSize != null ? p.watermarkSize : 100;
   els.watermarkSizeLabel.textContent = `${els.watermarkSize.value}%`;
-  const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide']);
+  const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'closeup', 'checklistguide']);
   els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = targets.has(cb.value);
   });
@@ -2371,6 +2371,175 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
+// "Up Close" guide — a tight, zoomed crop of exactly one checklist entry
+// and one placeholder card, so buyers can see precisely what information
+// and format they're getting before they buy, not just a shrunk full-page
+// thumbnail. Focus rectangles (x/y/w as fractions of the uploaded image —
+// see drawFocus) are tuned to this seller's current 3-column checklist and
+// placeholder grid layout; if that layout changes, these need retuning to
+// still land on a single entry/card.
+const CLOSEUP_CHECKLIST_FOCUS = { x: 0.04, y: 0.09, w: 0.30 };
+const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.04, y: 0.06, w: 0.30 };
+const CLOSEUP_CARDS = [
+  {
+    key: 'checklist', title: 'CHECKLIST ENTRY', subtitle: 'One entry, actual detail',
+    badge: 'FILLABLE', caption: 'Card art, set & number included',
+    note: 'Mark it off as you collect the real card', focus: CLOSEUP_CHECKLIST_FOCUS,
+  },
+  {
+    key: 'color', title: 'PLACEHOLDER CARD', subtitle: 'Exact trading card size',
+    badge: 'PRINT-READY', caption: 'Slides right into your binder',
+    note: 'Swap it out once you own the real card', focus: CLOSEUP_PLACEHOLDER_FOCUS,
+  },
+];
+
+function drawCloseUpDetail(ctx, brand, product, images, watermark) {
+  paintCanvasBackground(ctx, brand);
+  const textColor = contrastText(brand.accentColor);
+  const margin = 100;
+  const contentW = SIZE - margin * 2;
+
+  // ---- Header ----
+  ctx.fillStyle = brand.primaryColor;
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
+    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
+  });
+
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.25;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, 128);
+  ctx.lineTo(SIZE - margin, 128);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // ---- Title (fixed, single line) ----
+  ctx.fillStyle = textColor;
+  ctx.font = `700 84px "${brand.font}"`;
+  ctx.textAlign = 'left';
+  ctx.fillText('See It Up Close', margin, 250);
+
+  // ---- Subtitle (fixed) ----
+  ctx.globalAlpha = 0.7;
+  ctx.font = `500 38px "${brand.font}"`;
+  wrapText(ctx, 'Zoomed in on a single entry and card, so there are no surprises.', margin, 330, contentW, 48, 'left');
+  ctx.globalAlpha = 1;
+
+  // ---- Two zoomed-crop cards ----
+  const cardsTop = 400;
+  const cardGap = 34;
+  const cardW = (contentW - cardGap) / 2;
+  const cardH = 1000;
+  const pad = 20;
+
+  CLOSEUP_CARDS.forEach((c, i) => {
+    const cardX = margin + i * (cardW + cardGap);
+    const cx = cardX + cardW / 2;
+
+    ctx.fillStyle = '#ffffff';
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
+    ctx.stroke();
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `700 40px "${brand.font}"`;
+    ctx.textAlign = 'center';
+    ctx.fillText(c.title, cx, cardsTop + 66);
+
+    ctx.fillStyle = '#6b6259';
+    ctx.font = `500 27px "${brand.font}"`;
+    ctx.fillText(c.subtitle, cx, cardsTop + 106);
+
+    const imgX = cardX + pad, imgY = cardsTop + 140, imgW = cardW - pad * 2, imgH = 600;
+    ctx.save();
+    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
+    ctx.clip();
+    const img = images[c.key];
+    if (img) {
+      drawFocus(ctx, imgX, imgY, imgW, imgH, img, c.focus);
+    } else {
+      ctx.fillStyle = '#f1ece4';
+      ctx.fillRect(imgX, imgY, imgW, imgH);
+    }
+    if (watermark) {
+      drawWatermark(ctx, watermark.text, watermark, { x: imgX, y: imgY, w: imgW, h: imgH });
+    }
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
+    ctx.stroke();
+
+    const badgeY = imgY + imgH + 36;
+    ctx.font = `700 24px "${brand.font}"`;
+    const badgeW = ctx.measureText(c.badge).width + 40;
+    const badgeH = 50;
+    const badgeX = cx - badgeW / 2;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.globalAlpha = 0.12;
+    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = brand.primaryColor;
+    ctx.textAlign = 'center';
+    ctx.fillText(c.badge, cx, badgeY + badgeH / 2 + 8);
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.font = `600 30px "${brand.font}"`;
+    ctx.fillText(c.caption, cx, badgeY + badgeH + 44);
+
+    ctx.fillStyle = '#1f1b17';
+    ctx.globalAlpha = 0.6;
+    ctx.font = `500 24px "${brand.font}"`;
+    ctx.fillText(c.note, cx, badgeY + badgeH + 78);
+    ctx.globalAlpha = 1;
+  });
+
+  // ---- Highlighted note box ----
+  const boxTop = cardsTop + cardH + 90;
+  const boxH = 300;
+  ctx.fillStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.12;
+  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = textColor;
+  ctx.font = `700 48px "${brand.font}"`;
+  ctx.textAlign = 'center';
+  ctx.fillText('SEE EXACTLY WHAT YOU\'RE GETTING', SIZE / 2, boxTop + 135);
+
+  ctx.fillStyle = textColor;
+  ctx.globalAlpha = 0.85;
+  ctx.font = `500 36px "${brand.font}"`;
+  ctx.fillText('No guessing — this is the real format and size.', SIZE / 2, boxTop + 210);
+  ctx.globalAlpha = 1;
+
+  // ---- Footer ----
+  ctx.strokeStyle = brand.primaryColor;
+  ctx.globalAlpha = 0.2;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(margin, SIZE - 100);
+  ctx.lineTo(SIZE - margin, SIZE - 100);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = brand.primaryColor;
+  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
+    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
+  });
+
+  ctx.fillStyle = textColor;
+  ctx.font = `700 30px "${brand.font}"`;
+  ctx.textAlign = 'right';
+  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
+}
+
 // "3 Easy Steps" guide — entirely fixed (no images, no product-specific
 // text) since it always describes the same Checklist + Placeholders
 // workflow regardless of which product this happens to be.
@@ -3163,7 +3332,7 @@ els.form.addEventListener('submit', async e => {
   const watermark = getWatermarkConfig(brand);
   const watermarkFor = (key) => (watermark.enabled && watermark.targets.has(key)) ? watermark : null;
 
-  // Fixed set of 7 listing images for the Checklist + Placeholders product
+  // Fixed set of 8 listing images for the Checklist + Placeholders product
   // type — order matters, it's the Etsy listing order.
   const candidates = [
     {
@@ -3191,6 +3360,12 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
     },
     {
+      label: 'Up Close',
+      key: 'closeup',
+      include: true,
+      fn: (ctx) => drawCloseUpDetail(ctx, brand, product, checklistImages, watermarkFor('closeup')),
+    },
+    {
       label: 'Track Your Collection',
       key: 'checklistguide',
       include: true,
@@ -3216,12 +3391,12 @@ els.form.addEventListener('submit', async e => {
   }));
 
   // Watermarking is automatic and role-based: the Hero Cover, Everything
-  // Included showcase, Choose Your Size guide, Print Style guide, and Track
-  // Your Collection guide each draw their own watermark internally, clipped
-  // to their real-product-preview image areas. 3 Easy Steps and Your
-  // Download Is Ready are decorative/text-only and are never watermarked,
-  // full canvas or otherwise — there's no "actual artwork" on them to
-  // protect.
+  // Included showcase, Choose Your Size guide, Print Style guide, Up Close
+  // detail, and Track Your Collection guide each draw their own watermark
+  // internally, clipped to their real-product-preview image areas. 3 Easy
+  // Steps and Your Download Is Ready are decorative/text-only and are never
+  // watermarked, full canvas or otherwise — there's no "actual artwork" on
+  // them to protect.
   templates.forEach(t => {
     const canvas = makeCanvas();
     const ctx = canvas.getContext('2d');
