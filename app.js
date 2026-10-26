@@ -254,7 +254,7 @@ function defaultProfile(name) {
     watermarkColor: '#ffffff',
     watermarkOpacity: 30,
     watermarkSize: 100,
-    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'closeup', 'checklistguide'],
+    watermarkTargets: ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide'],
   };
 }
 
@@ -350,7 +350,7 @@ function applyProfileToForm(p) {
   els.watermarkOpacityLabel.textContent = `${els.watermarkOpacity.value}%`;
   els.watermarkSize.value = p.watermarkSize != null ? p.watermarkSize : 100;
   els.watermarkSizeLabel.textContent = `${els.watermarkSize.value}%`;
-  const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'closeup', 'checklistguide']);
+  const targets = new Set(p.watermarkTargets || ['hero', 'showcase', 'sizes', 'printstyle', 'checklistguide']);
   els.watermarkTargets.querySelectorAll('input[type=checkbox]').forEach(cb => {
     cb.checked = targets.has(cb.value);
   });
@@ -520,15 +520,6 @@ async function clearImageCache() {
 // =========================================================================
 const checklistImages = { checklist: null, color: null, grey: null, size9: null, size16: null, size25: null };
 
-// Per-card label positions read from the checklist and colour-placeholder
-// PDFs, used only by the "Up Close" crop to find the SAME card in both
-// files and size itself to the real layout (see resolvePlaceholderFocus /
-// resolveChecklistFocus). 'size9' is tracked separately from 'color' so
-// the crop can always prefer the highest-resolution (9-per-page) source
-// even if 'color' ends up holding a different size. Null until a PDF for
-// that key has been processed and its text successfully read.
-const closeupCardMatches = { checklist: null, color: null, size9: null };
-
 function syncChecklistImagesVisibility() {
   els.checklistImagesSection.hidden = els.productType.value !== 'checklist';
 }
@@ -586,62 +577,6 @@ async function countCardsInPdfFile(file) {
   return count;
 }
 
-// Reads every "#NNN / NNN" card-number label on page 1 along with its
-// on-page position, so "Up Close" can find a specific card by identity
-// instead of just assuming position (0,0) in both files. A label is often
-// split across several text runs (e.g. "#53", "/", "75"), so items are
-// first grouped into lines by rounded y-position (same page row), same as
-// the whole-page join countCardsInPdfFile already relies on — but a grid
-// or multi-column row puts SEVERAL entries on that same line, so each line
-// is then split into clusters by x-gap (a big gap means a new column, a
-// small one means still the same label) and matched independently, instead
-// of taking only the first match on the line. Returns matches sorted
-// top-to-bottom, left-to-right, or null if the file isn't a PDF pdf.js can
-// read text from.
-async function extractCardMatches(buf) {
-  try {
-    ensurePdfWorkerConfigured();
-    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    const page = await pdf.getPage(1);
-    const viewport = page.getViewport({ scale: 1 });
-    const content = await page.getTextContent();
-    const lines = new Map();
-    for (const item of content.items) {
-      const x = item.transform[4], y = item.transform[5];
-      const lineKey = Math.round(y / 2) * 2;
-      if (!lines.has(lineKey)) lines.set(lineKey, []);
-      lines.get(lineKey).push({ x, y, str: item.str, width: item.width || 0 });
-    }
-    const COLUMN_GAP = 30; // pt gap beyond which items are a new column, not the same label
-    const matches = [];
-    for (const items of lines.values()) {
-      items.sort((a, b) => a.x - b.x);
-      const clusters = [[items[0]]];
-      for (let i = 1; i < items.length; i++) {
-        const prev = items[i - 1];
-        if (items[i].x - (prev.x + prev.width) > COLUMN_GAP) clusters.push([]);
-        clusters[clusters.length - 1].push(items[i]);
-      }
-      for (const cluster of clusters) {
-        const text = cluster.map(it => it.str).join(' ');
-        const m = text.match(/#\s*\d+\s*\/\s*\d+/);
-        if (m) {
-          matches.push({
-            numberStr: m[0].replace(/\s+/g, ''),
-            xFrac: Math.max(0, Math.min(1, cluster[0].x / viewport.width)),
-            yFracTopDown: Math.max(0, Math.min(1, (viewport.height - cluster[0].y) / viewport.height)),
-          });
-        }
-      }
-    }
-    matches.sort((a, b) => (a.yFracTopDown - b.yFracTopDown) || (a.xFrac - b.xFrac));
-    return matches;
-  } catch (e) {
-    console.error('Card-position extraction failed:', e);
-    return null;
-  }
-}
-
 function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts = {}) {
   const { persist = true, restored = false } = opts;
   const img = new Image();
@@ -662,9 +597,6 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     try {
       const dataUrl = await renderPdfFirstPageToDataUrl(file);
       loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
-      if (key === 'checklist' || key === 'color' || key === 'size9') {
-        closeupCardMatches[key] = await extractCardMatches(await file.arrayBuffer());
-      }
     } catch (e) {
       statusEl.textContent = '— required';
       console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
@@ -673,7 +605,6 @@ async function processChecklistFile(file, key, previewEl, statusEl) {
     return;
   }
 
-  if (key === 'checklist' || key === 'color' || key === 'size9') closeupCardMatches[key] = null;
   const reader = new FileReader();
   reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
   reader.readAsDataURL(file);
@@ -845,15 +776,11 @@ async function handleQuickSetupFiles(fileList) {
         const dataUrl = await renderPdfFirstPageFromBuffer(await colorEntry.async('arraybuffer'));
         loadChecklistImageFromDataUrl(dataUrl, `size${z.size}`, sizeField.previewEl, sizeField.statusEl);
         quickSetupLog(`✓ ${z.file.name} → ${z.size}/page layout preview set`);
-        if (z.size === '9') {
-          closeupCardMatches.size9 = await extractCardMatches(await colorEntry.async('arraybuffer'));
-        }
         if (!genericColorSet) {
           const colorField = QUICK_SETUP_FIELD_BY_KEY.color;
           loadChecklistImageFromDataUrl(dataUrl, 'color', colorField.previewEl, colorField.statusEl);
           genericColorSet = true;
           quickSetupLog(`✓ ${z.file.name} → Colour Placeholders Preview set`);
-          closeupCardMatches.color = z.size === '9' ? closeupCardMatches.size9 : await extractCardMatches(await colorEntry.async('arraybuffer'));
         }
       } catch (e) {
         console.error('PDF render failed inside zip:', colorEntry.name, e);
@@ -924,9 +851,6 @@ els.clearCachedImagesBtn.addEventListener('click', () => {
     previewEl.innerHTML = '';
     statusEl.textContent = '— required';
   });
-  closeupCardMatches.checklist = null;
-  closeupCardMatches.color = null;
-  closeupCardMatches.size9 = null;
   clearImageCache();
 });
 
@@ -1242,31 +1166,6 @@ function drawFocus(ctx, x, y, w, h, img, focus) {
   const sx = Math.max(0, Math.min(img.width - sw, img.width * focus.x));
   const sy = Math.max(0, Math.min(img.height - sh, img.height * focus.y));
   ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
-}
-
-// Zoomed crop with an explicit width AND height fraction, unlike drawFocus
-// (whose height always follows the target box's own aspect ratio). Needed
-// when the cropped region's natural shape — e.g. one portrait cell of a
-// grid — doesn't match the box it's drawn into: the crop is fit into the
-// box "contain"-style (whole crop visible, letterboxed if its proportions
-// don't match the box) rather than stretched to exactly fill it.
-function drawFocusContain(ctx, x, y, w, h, img, focus, bgColor) {
-  if (bgColor) {
-    ctx.fillStyle = bgColor;
-    ctx.fillRect(x, y, w, h);
-  }
-  const sx = Math.max(0, Math.min(img.width, img.width * focus.x));
-  const sy = Math.max(0, Math.min(img.height, img.height * focus.y));
-  const sw = Math.min(img.width - sx, img.width * focus.w);
-  const sh = Math.min(img.height - sy, img.height * focus.h);
-  const cropAr = sw / sh, boxAr = w / h;
-  let dw, dh, dx, dy;
-  if (cropAr > boxAr) {
-    dw = w; dh = w / cropAr; dx = x; dy = y + (h - dh) / 2;
-  } else {
-    dh = h; dw = h * cropAr; dx = x + (w - dw) / 2; dy = y;
-  }
-  ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }
 
 // Pure word-wrap: measures with whatever font is already set on ctx and
@@ -2475,261 +2374,6 @@ function drawPrintStyleGuide(ctx, brand, product, images, watermark) {
   ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
 }
 
-// "Up Close" guide — a tight, zoomed crop of exactly one checklist entry
-// and one placeholder card, so buyers can see precisely what information
-// and format they're getting before they buy, not just a shrunk full-page
-// thumbnail. These are only the LAST-RESORT fallback sizes (x/y/w/h as
-// fractions of the uploaded image — see drawFocusContain), used when a
-// file's actual entry spacing can't be measured (see inferGridPitch) —
-// normally the crop sizes itself to the real file instead, since
-// different checklist products use different column counts (2 vs 3, etc).
-const CLOSEUP_CHECKLIST_FOCUS = { x: 0.035, y: 0.112, w: 0.335, h: 0.048 };
-const CLOSEUP_PLACEHOLDER_FOCUS = { x: 0.03, y: 0.08, w: 0.32, h: 0.27 };
-
-// Measures the real spacing between repeating entries (checklist columns,
-// or placeholder grid cells) from the actual positions of their card-
-// number labels, instead of guessing a fixed fraction — sellers' products
-// vary (a 2-column vs. 3-column checklist, a 3x3 vs. other placeholder
-// grid), so a hardcoded size only ever matches one of them and clips or
-// under-fills the rest. Takes the smallest positive gap between distinct
-// x/y positions as the column/row pitch; either comes back null if there
-// isn't enough variation on that axis to measure (e.g. a single-column
-// checklist, or only one card found).
-function inferGridPitch(matches) {
-  if (!matches || matches.length < 2) return { colPitch: null, rowPitch: null };
-  const round = (n) => Math.round(n * 1000) / 1000;
-  const minPositiveGap = (values) => {
-    const sorted = [...new Set(values.map(round))].sort((a, b) => a - b);
-    let min = null;
-    for (let i = 1; i < sorted.length; i++) {
-      const gap = sorted[i] - sorted[i - 1];
-      if (gap > 0.02 && (min === null || gap < min)) min = gap;
-    }
-    return min;
-  };
-  return {
-    colPitch: minPositiveGap(matches.map(m => m.xFrac)),
-    rowPitch: minPositiveGap(matches.map(m => m.yFracTopDown)),
-  };
-}
-
-// The checklist crop above always shows the checklist's own first entry.
-// Its width/height are sized from the real gap to the next column/row
-// (see inferGridPitch) when there's more than one entry to measure from,
-// falling back to the static default otherwise.
-function resolveChecklistFocus() {
-  const matches = closeupCardMatches.checklist;
-  const pitch = inferGridPitch(matches);
-  return {
-    x: CLOSEUP_CHECKLIST_FOCUS.x,
-    y: CLOSEUP_CHECKLIST_FOCUS.y,
-    w: pitch.colPitch ? pitch.colPitch * 0.90 : CLOSEUP_CHECKLIST_FOCUS.w,
-    h: pitch.rowPitch ? pitch.rowPitch * 0.90 : CLOSEUP_CHECKLIST_FOCUS.h,
-  };
-}
-
-// The placeholder page is a SEPARATE file that usually lists cards in a
-// different order than the checklist, so "first cell" there is very often
-// a different card. When both PDFs' card-number labels were readable (see
-// extractCardMatches), this instead finds wherever the checklist's first
-// card actually sits on the placeholder page, so both panels show the same
-// card — preferring the 9-per-page file specifically for the best image
-// quality, since it has fewer, larger cards per page than the 16/25
-// layouts. The placeholder page's own first card is used as a calibration
-// reference — whatever offset ITS number label sits at relative to the
-// tuned default crop box is assumed to hold for every other card on the
-// same templated page — and the box itself is sized from the real
-// measured cell spacing (see inferGridPitch) rather than a fixed guess, so
-// it doesn't clip a card that turns out to need more room than expected.
-// Falls back to the static default whenever a file isn't a PDF, has no
-// readable card numbers, or simply doesn't contain a matching card.
-function resolvePlaceholderFocus() {
-  const checklistMatches = closeupCardMatches.checklist;
-  const colorMatches = closeupCardMatches.size9 || closeupCardMatches.color;
-  if (!checklistMatches || !checklistMatches.length || !colorMatches || !colorMatches.length) {
-    return CLOSEUP_PLACEHOLDER_FOCUS;
-  }
-  const target = checklistMatches[0].numberStr;
-  const matched = colorMatches.find(m => m.numberStr === target);
-  if (!matched) return CLOSEUP_PLACEHOLDER_FOCUS;
-
-  const calib = colorMatches[0];
-  const offsetX = CLOSEUP_PLACEHOLDER_FOCUS.x - calib.xFrac;
-  const offsetY = CLOSEUP_PLACEHOLDER_FOCUS.y - calib.yFracTopDown;
-  const pitch = inferGridPitch(colorMatches);
-  const w = pitch.colPitch ? pitch.colPitch * 0.90 : CLOSEUP_PLACEHOLDER_FOCUS.w;
-  const h = pitch.rowPitch ? pitch.rowPitch * 0.90 : CLOSEUP_PLACEHOLDER_FOCUS.h;
-  return {
-    x: Math.max(0, Math.min(1 - w, matched.xFrac + offsetX)),
-    y: Math.max(0, Math.min(1 - h, matched.yFracTopDown + offsetY)),
-    w, h,
-  };
-}
-
-const CLOSEUP_CARDS = [
-  {
-    key: 'checklist', title: 'CHECKLIST ENTRY', subtitle: 'One entry, actual detail',
-    badge: 'FILLABLE', caption: 'Card art, set & number included',
-    note: 'Mark it off as you collect the real card', focus: CLOSEUP_CHECKLIST_FOCUS,
-  },
-  {
-    key: 'color', title: 'PLACEHOLDER CARD', subtitle: 'Exact trading card size',
-    badge: 'PRINT-READY', caption: 'Slides right into your binder',
-    note: 'Swap it out once you own the real card', focus: CLOSEUP_PLACEHOLDER_FOCUS,
-  },
-];
-
-function drawCloseUpDetail(ctx, brand, product, images, watermark) {
-  paintCanvasBackground(ctx, brand);
-  const textColor = contrastText(brand.accentColor);
-  const margin = 100;
-  const contentW = SIZE - margin * 2;
-
-  // ---- Header ----
-  ctx.fillStyle = brand.primaryColor;
-  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, 108, {
-    maxWidth: contentW, startSize: 32, minSize: 20, weight: 700, family: brand.font, label: 'Shop name',
-  });
-
-  ctx.strokeStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.25;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(margin, 128);
-  ctx.lineTo(SIZE - margin, 128);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  // ---- Title (fixed, single line) ----
-  ctx.fillStyle = textColor;
-  ctx.font = `700 84px "${brand.font}"`;
-  ctx.textAlign = 'left';
-  ctx.fillText('See It Up Close', margin, 250);
-
-  // ---- Subtitle (fixed) ----
-  ctx.globalAlpha = 0.7;
-  ctx.font = `500 38px "${brand.font}"`;
-  wrapText(ctx, 'Zoomed in on a single entry and card, so there are no surprises.', margin, 330, contentW, 48, 'left');
-  ctx.globalAlpha = 1;
-
-  // ---- Two zoomed-crop cards ----
-  const cardsTop = 400;
-  const cardGap = 34;
-  const cardW = (contentW - cardGap) / 2;
-  const cardH = 1000;
-  const pad = 20;
-
-  CLOSEUP_CARDS.forEach((c, i) => {
-    const cardX = margin + i * (cardW + cardGap);
-    const cx = cardX + cardW / 2;
-
-    ctx.fillStyle = '#ffffff';
-    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, cardX, cardsTop, cardW, cardH, 22);
-    ctx.stroke();
-
-    ctx.fillStyle = '#1f1b17';
-    ctx.font = `700 40px "${brand.font}"`;
-    ctx.textAlign = 'center';
-    ctx.fillText(c.title, cx, cardsTop + 66);
-
-    ctx.fillStyle = '#6b6259';
-    ctx.font = `500 27px "${brand.font}"`;
-    ctx.fillText(c.subtitle, cx, cardsTop + 106);
-
-    const imgX = cardX + pad, imgY = cardsTop + 140, imgW = cardW - pad * 2, imgH = 600;
-    ctx.save();
-    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
-    ctx.clip();
-    // The placeholder panel prefers the 9-per-page image specifically (see
-    // resolvePlaceholderFocus) since it has fewer, larger cards per page
-    // than the 16/25 layouts, so a single-card crop stays sharp.
-    const img = c.key === 'color' ? (images.size9 || images.color) : images[c.key];
-    if (img) {
-      const focus = c.key === 'color' ? resolvePlaceholderFocus() : resolveChecklistFocus();
-      drawFocusContain(ctx, imgX, imgY, imgW, imgH, img, focus, '#f1ece4');
-    } else {
-      ctx.fillStyle = '#f1ece4';
-      ctx.fillRect(imgX, imgY, imgW, imgH);
-    }
-    if (watermark) {
-      drawWatermark(ctx, watermark.text, watermark, { x: imgX, y: imgY, w: imgW, h: imgH });
-    }
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(0,0,0,0.08)';
-    ctx.lineWidth = 2;
-    roundRect(ctx, imgX, imgY, imgW, imgH, 14);
-    ctx.stroke();
-
-    const badgeY = imgY + imgH + 36;
-    ctx.font = `700 24px "${brand.font}"`;
-    const badgeW = ctx.measureText(c.badge).width + 40;
-    const badgeH = 50;
-    const badgeX = cx - badgeW / 2;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.globalAlpha = 0.12;
-    roundRect(ctx, badgeX, badgeY, badgeW, badgeH, badgeH / 2);
-    ctx.fill();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = brand.primaryColor;
-    ctx.textAlign = 'center';
-    ctx.fillText(c.badge, cx, badgeY + badgeH / 2 + 8);
-
-    ctx.fillStyle = '#1f1b17';
-    ctx.font = `600 30px "${brand.font}"`;
-    ctx.fillText(c.caption, cx, badgeY + badgeH + 44);
-
-    ctx.fillStyle = '#1f1b17';
-    ctx.globalAlpha = 0.6;
-    ctx.font = `500 24px "${brand.font}"`;
-    ctx.fillText(c.note, cx, badgeY + badgeH + 78);
-    ctx.globalAlpha = 1;
-  });
-
-  // ---- Highlighted note box ----
-  const boxTop = cardsTop + cardH + 90;
-  const boxH = 300;
-  ctx.fillStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.12;
-  roundRect(ctx, margin, boxTop, contentW, boxH, 20);
-  ctx.fill();
-  ctx.globalAlpha = 1;
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 48px "${brand.font}"`;
-  ctx.textAlign = 'center';
-  ctx.fillText('SEE EXACTLY WHAT YOU\'RE GETTING', SIZE / 2, boxTop + 135);
-
-  ctx.fillStyle = textColor;
-  ctx.globalAlpha = 0.85;
-  ctx.font = `500 36px "${brand.font}"`;
-  ctx.fillText('No guessing — this is the real format and size.', SIZE / 2, boxTop + 210);
-  ctx.globalAlpha = 1;
-
-  // ---- Footer ----
-  ctx.strokeStyle = brand.primaryColor;
-  ctx.globalAlpha = 0.2;
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.moveTo(margin, SIZE - 100);
-  ctx.lineTo(SIZE - margin, SIZE - 100);
-  ctx.stroke();
-  ctx.globalAlpha = 1;
-
-  ctx.fillStyle = brand.primaryColor;
-  fitSingleLine(ctx, brand.companyName.toUpperCase(), margin, SIZE - 55, {
-    maxWidth: contentW - 500, startSize: 30, minSize: 18, weight: 700, family: brand.font, label: 'Shop name',
-  });
-
-  ctx.fillStyle = textColor;
-  ctx.font = `700 30px "${brand.font}"`;
-  ctx.textAlign = 'right';
-  ctx.fillText('DIGITAL DOWNLOAD', SIZE - margin, SIZE - 55);
-}
-
 // "3 Easy Steps" guide — entirely fixed (no images, no product-specific
 // text) since it always describes the same Checklist + Placeholders
 // workflow regardless of which product this happens to be.
@@ -3522,7 +3166,7 @@ els.form.addEventListener('submit', async e => {
   const watermark = getWatermarkConfig(brand);
   const watermarkFor = (key) => (watermark.enabled && watermark.targets.has(key)) ? watermark : null;
 
-  // Fixed set of 8 listing images for the Checklist + Placeholders product
+  // Fixed set of 7 listing images for the Checklist + Placeholders product
   // type — order matters, it's the Etsy listing order.
   const candidates = [
     {
@@ -3550,12 +3194,6 @@ els.form.addEventListener('submit', async e => {
       fn: (ctx) => drawPrintStyleGuide(ctx, brand, product, checklistImages, watermarkFor('printstyle')),
     },
     {
-      label: 'Up Close',
-      key: 'closeup',
-      include: true,
-      fn: (ctx) => drawCloseUpDetail(ctx, brand, product, checklistImages, watermarkFor('closeup')),
-    },
-    {
       label: 'Track Your Collection',
       key: 'checklistguide',
       include: true,
@@ -3581,10 +3219,10 @@ els.form.addEventListener('submit', async e => {
   }));
 
   // Watermarking is automatic and role-based: the Hero Cover, Everything
-  // Included showcase, Choose Your Size guide, Print Style guide, Up Close
-  // detail, and Track Your Collection guide each draw their own watermark
-  // internally, clipped to their real-product-preview image areas. 3 Easy
-  // Steps and Your Download Is Ready are decorative/text-only and are never
+  // Included showcase, Choose Your Size guide, Print Style guide, and Track
+  // Your Collection guide each draw their own watermark internally, clipped
+  // to their real-product-preview image areas. 3 Easy Steps and Your
+  // Download Is Ready are decorative/text-only and are never
   // watermarked, full canvas or otherwise — there's no "actual artwork" on
   // them to protect.
   templates.forEach(t => {
