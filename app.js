@@ -62,6 +62,19 @@ const COLOR_SCHEMES = [
     id: 'botanical', name: 'Botanical', primary: '#6b4a2a', accent: '#e8dcae',
     backgroundGradient: ['#b9c9a8', '#cdd3a3', '#e8dcae', '#e3b770'],
   },
+  // The shop's own brand: colors sampled directly from the CurrentTrove Etsy
+  // banner (cream parchment, navy wordmark, gold sparkle accents, a dusty
+  // blue wave). contrastText picks dark-vs-white text for a whole template
+  // from accent alone, so — unlike Halloween, whose gradient stays dark
+  // throughout — every stop here is kept pale like Autumn/Wildflower's, or
+  // dark text would go unreadable wherever the gradient got close to full
+  // navy. The brand's navy still carries the page: it's the primary color,
+  // used at full saturation for the wordmark, badges and footer bar, which
+  // sit on white cards or flat fills rather than on the gradient itself.
+  {
+    id: 'currenttrove', name: 'CurrentTrove', primary: '#1b2c47', accent: '#f3e6cc',
+    backgroundGradient: ['#f3e6cc', '#ead9ae', '#b8cdd6', '#9bb0c7'],
+  },
 ];
 
 // =========================================================================
@@ -212,7 +225,7 @@ function warnOnce(msg) {
 // A named default rather than COLOR_SCHEMES[0] — so the palette above can be
 // freely reordered (to match how it reads in the picker) without silently
 // changing what new users land on.
-const DEFAULT_COLOR_SCHEME_ID = 'orange';
+const DEFAULT_COLOR_SCHEME_ID = 'currenttrove';
 
 function loadColorSchemeId() {
   try {
