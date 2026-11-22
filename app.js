@@ -151,26 +151,9 @@ const els = {
   productType: document.getElementById('productType'),
   gradeSubjectRow: document.getElementById('gradeSubjectRow'),
   checklistImagesSection: document.getElementById('checklistImagesSection'),
+  quickSetupSection: document.getElementById('quickSetupSection'),
   quickSetupFiles: document.getElementById('quickSetupFiles'),
   quickSetupStatus: document.getElementById('quickSetupStatus'),
-  checklistImgChecklist: document.getElementById('checklistImgChecklist'),
-  checklistImgChecklistPreview: document.getElementById('checklistImgChecklistPreview'),
-  checklistImgChecklistStatus: document.getElementById('checklistImgChecklistStatus'),
-  checklistImgColor: document.getElementById('checklistImgColor'),
-  checklistImgColorPreview: document.getElementById('checklistImgColorPreview'),
-  checklistImgColorStatus: document.getElementById('checklistImgColorStatus'),
-  checklistImgGrey: document.getElementById('checklistImgGrey'),
-  checklistImgGreyPreview: document.getElementById('checklistImgGreyPreview'),
-  checklistImgGreyStatus: document.getElementById('checklistImgGreyStatus'),
-  checklistImgSize9: document.getElementById('checklistImgSize9'),
-  checklistImgSize9Preview: document.getElementById('checklistImgSize9Preview'),
-  checklistImgSize9Status: document.getElementById('checklistImgSize9Status'),
-  checklistImgSize16: document.getElementById('checklistImgSize16'),
-  checklistImgSize16Preview: document.getElementById('checklistImgSize16Preview'),
-  checklistImgSize16Status: document.getElementById('checklistImgSize16Status'),
-  checklistImgSize25: document.getElementById('checklistImgSize25'),
-  checklistImgSize25Preview: document.getElementById('checklistImgSize25Preview'),
-  checklistImgSize25Status: document.getElementById('checklistImgSize25Status'),
   clearCachedImagesBtn: document.getElementById('clearCachedImagesBtn'),
   productName: document.getElementById('productName'),
   productNameHistory: document.getElementById('productNameHistory'),
@@ -592,63 +575,33 @@ async function countCardsInPdfFile(file) {
   return count;
 }
 
-function loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, opts = {}) {
-  const { persist = true, restored = false } = opts;
+function loadChecklistImageFromDataUrl(dataUrl, key, opts = {}) {
+  const { persist = true } = opts;
   const img = new Image();
   img.onload = () => {
     checklistImages[key] = img;
-    previewEl.innerHTML = `<img src="${dataUrl}" alt="" />`;
-    statusEl.textContent = restored ? '— remembered from last upload' : '— uploaded';
   };
   img.src = dataUrl;
   if (persist) saveImageToCache(key, dataUrl);
 }
 
-async function processChecklistFile(file, key, previewEl, statusEl) {
+async function processChecklistFile(file, key) {
   if (!file) return;
 
   if (isPdfFile(file)) {
-    statusEl.textContent = '— rendering PDF page 1…';
     try {
       const dataUrl = await renderPdfFirstPageToDataUrl(file);
-      loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl);
+      loadChecklistImageFromDataUrl(dataUrl, key);
     } catch (e) {
-      statusEl.textContent = '— required';
       console.error('PDF render failed:', file.name, file.size, 'bytes —', e);
-      alert('Could not read that PDF. Please try a different file, or upload an image screenshot instead.');
+      alert('Could not read that PDF. Please try a different file.');
     }
     return;
   }
 
   const reader = new FileReader();
-  reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key, previewEl, statusEl);
+  reader.onload = () => loadChecklistImageFromDataUrl(reader.result, key);
   reader.readAsDataURL(file);
-}
-
-function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
-  inputEl.addEventListener('change', () => {
-    processChecklistFile(inputEl.files[0], key, previewEl, statusEl);
-  });
-
-  // Drag-and-drop — the whole label is the drop target (not just the
-  // narrow native input bar), since that's the area people actually aim
-  // a drag at. A native file input DOES accept drops on its own, but only
-  // on its own small rendered box, so a drop anywhere else in the label
-  // (the field's text, its padding) would silently do nothing without this.
-  const dropTarget = inputEl.closest('label') || inputEl;
-  dropTarget.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropTarget.classList.add('drag-over');
-  });
-  dropTarget.addEventListener('dragleave', () => {
-    dropTarget.classList.remove('drag-over');
-  });
-  dropTarget.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropTarget.classList.remove('drag-over');
-    const file = e.dataTransfer.files && e.dataTransfer.files[0];
-    if (file) processChecklistFile(file, key, previewEl, statusEl);
-  });
 }
 
 // Safety net: without this, dropping a file anywhere on the page outside
@@ -657,22 +610,7 @@ function bindChecklistImageUpload(inputEl, previewEl, statusEl, key) {
 window.addEventListener('dragover', (e) => e.preventDefault());
 window.addEventListener('drop', (e) => e.preventDefault());
 
-bindChecklistImageUpload(els.checklistImgChecklist, els.checklistImgChecklistPreview, els.checklistImgChecklistStatus, 'checklist');
-bindChecklistImageUpload(els.checklistImgColor, els.checklistImgColorPreview, els.checklistImgColorStatus, 'color');
-bindChecklistImageUpload(els.checklistImgGrey, els.checklistImgGreyPreview, els.checklistImgGreyStatus, 'grey');
-bindChecklistImageUpload(els.checklistImgSize9, els.checklistImgSize9Preview, els.checklistImgSize9Status, 'size9');
-bindChecklistImageUpload(els.checklistImgSize16, els.checklistImgSize16Preview, els.checklistImgSize16Status, 'size16');
-bindChecklistImageUpload(els.checklistImgSize25, els.checklistImgSize25Preview, els.checklistImgSize25Status, 'size25');
-
-const CHECKLIST_IMAGE_FIELDS = [
-  { key: 'checklist', previewEl: els.checklistImgChecklistPreview, statusEl: els.checklistImgChecklistStatus },
-  { key: 'color', previewEl: els.checklistImgColorPreview, statusEl: els.checklistImgColorStatus },
-  { key: 'grey', previewEl: els.checklistImgGreyPreview, statusEl: els.checklistImgGreyStatus },
-  { key: 'size9', previewEl: els.checklistImgSize9Preview, statusEl: els.checklistImgSize9Status },
-  { key: 'size16', previewEl: els.checklistImgSize16Preview, statusEl: els.checklistImgSize16Status },
-  { key: 'size25', previewEl: els.checklistImgSize25Preview, statusEl: els.checklistImgSize25Status },
-];
-const QUICK_SETUP_FIELD_BY_KEY = Object.fromEntries(CHECKLIST_IMAGE_FIELDS.map(f => [f.key, f]));
+const CHECKLIST_IMAGE_KEYS = ['checklist', 'color', 'grey', 'size9', 'size16', 'size25'];
 
 // =========================================================================
 // Quick Setup — drop the Fillable Checklist PDF + all 3 size ZIPs at once
@@ -734,8 +672,7 @@ async function handleQuickSetupFiles(fileList) {
       quickSetupLog(`! ${checklistFile.name} didn't match the expected naming pattern — rendering it anyway, but name/count are skipped`);
     }
 
-    const field = QUICK_SETUP_FIELD_BY_KEY.checklist;
-    await processChecklistFile(checklistFile, 'checklist', field.previewEl, field.statusEl);
+    await processChecklistFile(checklistFile, 'checklist');
     quickSetupLog(`✓ ${checklistFile.name} — checklist preview set`);
 
     try {
@@ -768,8 +705,7 @@ async function handleQuickSetupFiles(fileList) {
 
   let genericColorSet = false, genericGreySet = false;
   for (const z of parsedZips) {
-    const sizeField = QUICK_SETUP_FIELD_BY_KEY[`size${z.size}`];
-    if (!sizeField) {
+    if (!PLACEHOLDER_SIZES.includes(Number(z.size))) {
       quickSetupLog(`! ${z.file.name} is for size ${z.size}, which has no preview slot — skipped`);
       continue;
     }
@@ -789,13 +725,12 @@ async function handleQuickSetupFiles(fileList) {
     if (colorEntry) {
       try {
         const dataUrl = await renderPdfFirstPageFromBuffer(await colorEntry.async('arraybuffer'));
-        loadChecklistImageFromDataUrl(dataUrl, `size${z.size}`, sizeField.previewEl, sizeField.statusEl);
+        loadChecklistImageFromDataUrl(dataUrl, `size${z.size}`);
         quickSetupLog(`✓ ${z.file.name} → ${z.size}/page layout preview set`);
         if (!genericColorSet) {
-          const colorField = QUICK_SETUP_FIELD_BY_KEY.color;
-          loadChecklistImageFromDataUrl(dataUrl, 'color', colorField.previewEl, colorField.statusEl);
+          loadChecklistImageFromDataUrl(dataUrl, 'color');
           genericColorSet = true;
-          quickSetupLog(`✓ ${z.file.name} → Colour Placeholders Preview set`);
+          quickSetupLog(`✓ ${z.file.name} → Colour Placeholders set`);
         }
       } catch (e) {
         console.error('PDF render failed inside zip:', colorEntry.name, e);
@@ -809,10 +744,9 @@ async function handleQuickSetupFiles(fileList) {
       try {
         const dataUrl = await renderPdfFirstPageFromBuffer(await greyEntry.async('arraybuffer'));
         if (!genericGreySet) {
-          const greyField = QUICK_SETUP_FIELD_BY_KEY.grey;
-          loadChecklistImageFromDataUrl(dataUrl, 'grey', greyField.previewEl, greyField.statusEl);
+          loadChecklistImageFromDataUrl(dataUrl, 'grey');
           genericGreySet = true;
-          quickSetupLog(`✓ ${z.file.name} → Greyscale Placeholders Preview set`);
+          quickSetupLog(`✓ ${z.file.name} → Greyscale Placeholders set`);
         }
       } catch (e) {
         console.error('PDF render failed inside zip:', greyEntry.name, e);
@@ -848,36 +782,25 @@ els.quickSetupFiles.addEventListener('change', () => {
   });
 })();
 
-// Restores any previously-uploaded images from the local cache on load, so
-// re-testing (or just reopening the tab) doesn't require re-uploading the
-// same 6 screenshots every time. Note this only restores what's cached in
-// *this* browser — a real new listing still needs its own real screenshots.
+// Restores any previously-processed images from the local cache on load, so
+// re-testing (or just reopening the tab) doesn't require dropping the same
+// files into Quick Setup every time. Note this only restores what's cached
+// in *this* browser — a real new listing still needs its own real files.
 (async function restoreCachedChecklistImages() {
-  await Promise.all(CHECKLIST_IMAGE_FIELDS.map(async ({ key, previewEl, statusEl }) => {
+  await Promise.all(CHECKLIST_IMAGE_KEYS.map(async (key) => {
     const dataUrl = await loadImageFromCache(key);
-    if (dataUrl) loadChecklistImageFromDataUrl(dataUrl, key, previewEl, statusEl, { persist: false, restored: true });
+    if (dataUrl) loadChecklistImageFromDataUrl(dataUrl, key, { persist: false });
   }));
 })();
 
 els.clearCachedImagesBtn.addEventListener('click', () => {
-  if (!confirm('Clear the remembered preview images from this browser? You will need to upload them again.')) return;
-  CHECKLIST_IMAGE_FIELDS.forEach(({ key, previewEl, statusEl }) => {
-    checklistImages[key] = null;
-    previewEl.innerHTML = '';
-    statusEl.textContent = '— required';
-  });
+  if (!confirm('Clear the remembered preview images from this browser? You will need to drop your files into Quick Setup again.')) return;
+  CHECKLIST_IMAGE_KEYS.forEach(key => { checklistImages[key] = null; });
   clearImageCache();
 });
 
 function missingChecklistImageLabels() {
-  const missing = [];
-  if (!checklistImages.checklist) missing.push('Checklist Screenshot');
-  if (!checklistImages.color) missing.push('Colour Placeholders Preview');
-  if (!checklistImages.grey) missing.push('Greyscale Placeholders Preview');
-  if (!checklistImages.size9) missing.push('9 Cards/Page Layout Preview');
-  if (!checklistImages.size16) missing.push('16 Cards/Page Layout Preview');
-  if (!checklistImages.size25) missing.push('25 Cards/Page Layout Preview');
-  return missing;
+  return CHECKLIST_IMAGE_KEYS.filter(key => !checklistImages[key]).map(key => CHECKLIST_IMAGE_LABELS[key]);
 }
 
 // Some badges don't make sense for certain product types (e.g. a checklist
@@ -3151,14 +3074,14 @@ function downloadCanvas(canvas, name) {
   link.click();
 }
 
-// Checklist/placeholder screenshots now display via drawContain (letterbox,
-// full image always visible) rather than cropping. An upload whose aspect
-// ratio is very different from a "normal" screenshot will still show in
-// full, but with a lot of background padding around it — worth flagging so
-// the user can swap in a closer-fitting image if that's not what they want.
+// Checklist/placeholder previews display via drawContain (letterbox, full
+// image always visible) rather than cropping. A file whose rendered aspect
+// ratio is very different from a normal page will still show in full, but
+// with a lot of background padding around it — worth flagging so the user
+// can swap in a closer-fitting file if that's not what they want.
 const CHECKLIST_IMAGE_LABELS = {
-  checklist: 'Checklist Screenshot', color: 'Colour Placeholders Preview', grey: 'Greyscale Placeholders Preview',
-  size9: '9 Cards/Page Layout Preview', size16: '16 Cards/Page Layout Preview', size25: '25 Cards/Page Layout Preview',
+  checklist: 'Fillable Checklist', color: 'Colour Placeholders', grey: 'Greyscale Placeholders',
+  size9: '9 Cards/Page Layout', size16: '16 Cards/Page Layout', size25: '25 Cards/Page Layout',
 };
 function checkImageAspectRatios() {
   Object.entries(checklistImages).forEach(([key, img]) => {
@@ -3190,8 +3113,8 @@ els.form.addEventListener('submit', async e => {
   if (els.productType.value === 'checklist') {
     const missing = missingChecklistImageLabels();
     if (missing.length) {
-      alert(`Please upload the following before generating:\n\n${missing.map(m => '- ' + m).join('\n')}`);
-      els.checklistImagesSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      alert(`Please use Quick Setup above to add the following before generating:\n\n${missing.map(m => '- ' + m).join('\n')}`);
+      els.quickSetupSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
   }

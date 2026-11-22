@@ -15,7 +15,7 @@
   })();
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=Montserrat:wght@400;600;700&family=Quicksand:wght@500;700&family=Lora:wght@500;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=1795368861" />
+<link rel="stylesheet" href="style.css?v=1795369784" />
 </head>
 <body>
 <header class="topbar">
@@ -42,10 +42,10 @@
   <aside class="panel">
     <form id="listingForm" autocomplete="off">
 
-      <section class="field-group">
+      <section class="field-group" id="quickSetupSection">
         <label class="quick-setup" for="quickSetupFiles">
           <span class="quick-setup-title">Quick setup — drop all 4 files at once</span>
-          <span class="hint">Your Fillable Checklist PDF + all 3 size ZIPs. Auto-fills shop/product name, card count, and every preview image below from your file names — review before publishing.</span>
+          <span class="hint">Your Fillable Checklist PDF + all 3 size ZIPs. Auto-fills shop/product name, card count, and every preview image from your file names — review before publishing.</span>
           <input type="file" id="quickSetupFiles" accept=".pdf,.zip,application/pdf,application/zip" multiple />
           <div class="quick-setup-files" id="quickSetupStatus"></div>
         </label>
@@ -205,42 +205,11 @@
       </section>
 
       <section class="field-group" id="checklistImagesSection" hidden>
-        <h2>Preview Images <span class="hint">required for this product type</span></h2>
-        <p class="hint">These build all 7 listing images automatically (some images are reused across multiple listing images), alongside your product name and shop name. You can drop the actual PDF here instead of a screenshot — the first page is rendered automatically as the preview.</p>
+        <h2>Cached Preview Images <span class="hint">from Quick Setup</span></h2>
+        <p class="hint">Filled in automatically by Quick Setup above and remembered in this browser, so you won't need to drop the files again after a reload.</p>
         <div class="type-status-row">
-          <span class="hint">Remembered in this browser — no need to re-upload after a reload.</span>
           <button type="button" id="clearCachedImagesBtn" class="link-btn">clear remembered images</button>
         </div>
-
-        <label>Checklist Screenshot <span class="hint" id="checklistImgChecklistStatus">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgChecklist" />
-        </label>
-        <div class="logo-preview" id="checklistImgChecklistPreview"></div>
-
-        <label>Colour Placeholders Preview <span class="hint" id="checklistImgColorStatus">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgColor" />
-        </label>
-        <div class="logo-preview" id="checklistImgColorPreview"></div>
-
-        <label>Greyscale Placeholders Preview <span class="hint" id="checklistImgGreyStatus">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgGrey" />
-        </label>
-        <div class="logo-preview" id="checklistImgGreyPreview"></div>
-
-        <label>9 Cards/Page Layout Preview <span class="hint" id="checklistImgSize9Status">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgSize9" />
-        </label>
-        <div class="logo-preview" id="checklistImgSize9Preview"></div>
-
-        <label>16 Cards/Page Layout Preview <span class="hint" id="checklistImgSize16Status">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgSize16" />
-        </label>
-        <div class="logo-preview" id="checklistImgSize16Preview"></div>
-
-        <label>25 Cards/Page Layout Preview <span class="hint" id="checklistImgSize25Status">— required</span>
-          <input type="file" accept="image/*,application/pdf" id="checklistImgSize25" />
-        </label>
-        <div class="logo-preview" id="checklistImgSize25Preview"></div>
       </section>
 
       <details class="field-group collapsible-group" id="watermarkSection">
@@ -320,6 +289,6 @@
   import * as pdfjsLib from 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.10.38/pdf.min.mjs';
   window.pdfjsLib = pdfjsLib;
 </script>
-<script src="app.js?v=1795368861"></script>
+<script src="app.js?v=1795369784"></script>
 </body>
 </html>
