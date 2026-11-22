@@ -80,18 +80,20 @@ const COLOR_SCHEMES = [
 
 // =========================================================================
 // Shared product-data facts — every template pulls wording from here so the
-// same claim (page sizes, digital-only status, ZIP count, badges) can't
-// drift into inconsistent copy across the 7 listing images. These are fixed
-// rather than form fields because they're true of every listing this app
-// generates: one ZIP per placeholder size, and always just "Instant
+// same claim (page sizes, digital-only status, ZIP count, badges, tagline)
+// can't drift into inconsistent copy across the 7 listing images. These are
+// fixed rather than form fields because they're true of every listing this
+// app generates: one ZIP per placeholder size, always just "Instant
 // Download" (this seller's listings don't offer the others this app could
-// show, like "Editable in Canva" or "Print & Go").
+// show, like "Editable in Canva" or "Print & Go"), and always the same
+// cover-image tagline.
 // =========================================================================
 const PLACEHOLDER_SIZES = [9, 16, 25];
 const PLACEHOLDER_SIZES_LIST = PLACEHOLDER_SIZES.join(', ').replace(/, ([^,]*)$/, ' or $1');
 const IS_DIGITAL_PRODUCT = true;
 const ZIP_FILE_COUNT = PLACEHOLDER_SIZES.length;
 const FIXED_BADGES = ['Instant Download'];
+const FIXED_TAGLINE = 'Plan your binder. Track your collection.';
 const DIGITAL_DISCLAIMER = 'Digital product only • No physical item will be shipped';
 
 function zipFileWord(count) {
@@ -162,7 +164,6 @@ const els = {
   clearProductNameHistoryBtn: document.getElementById('clearProductNameHistoryBtn'),
   gradeLevel: document.getElementById('gradeLevel'),
   subject: document.getElementById('subject'),
-  tagline: document.getElementById('tagline'),
   cardCountWithVariants: document.getElementById('cardCountWithVariants'),
   cardCountNoVariants: document.getElementById('cardCountNoVariants'),
   cardCountUnique: document.getElementById('cardCountUnique'),
@@ -804,17 +805,16 @@ function missingChecklistImageLabels() {
 }
 
 // =========================================================================
-// Per-product-type content — Tagline and card counts are remembered per
-// Product Type rather than per brand profile, since the same kind of
-// listing tends to reuse the same wording regardless of which shop it's
-// for. Badges and ZIP count used to be form fields here too, but every
-// listing this seller makes uses the same values (Instant Download only,
-// 3 ZIP files), so they're hardcoded below (see FIXED_BADGES) instead of
-// being a control nobody ever changed.
+// Per-product-type content — Card counts are remembered per Product Type
+// rather than per brand profile, since the same kind of listing tends to
+// reuse the same numbers regardless of which shop it's for. Tagline,
+// Badges and ZIP count used to be form fields here too, but every listing
+// this seller makes uses the same values for all three (see FIXED_TAGLINE
+// and FIXED_BADGES below), so they're hardcoded instead of being controls
+// nobody ever changed.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
-const DEFAULT_TAGLINE = 'Plan your binder. Track your collection.';
-const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountWithVariants: '', cardCountNoVariants: '', cardCountUnique: '' };
+const DEFAULT_TYPE_CONTENT = { cardCountWithVariants: '', cardCountNoVariants: '', cardCountUnique: '' };
 
 function loadTypeContent() {
   try {
@@ -851,7 +851,6 @@ function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
   hideUndoClearTypeContent();
   typeContent[els.productType.value] = {
-    tagline: els.tagline.value,
     cardCountWithVariants: els.cardCountWithVariants.value,
     cardCountNoVariants: els.cardCountNoVariants.value,
     cardCountUnique: els.cardCountUnique.value,
@@ -863,7 +862,6 @@ function saveCurrentFieldsToType() {
 function applyTypeContent(type) {
   const saved = typeContent[type] || DEFAULT_TYPE_CONTENT;
   suppressTypeContentSave = true;
-  els.tagline.value = saved.tagline || DEFAULT_TAGLINE;
   els.cardCountWithVariants.value = saved.cardCountWithVariants || '';
   els.cardCountNoVariants.value = saved.cardCountNoVariants || '';
   els.cardCountUnique.value = saved.cardCountUnique || '';
@@ -879,14 +877,14 @@ function handleProductTypeChange() {
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.cardCountWithVariants, els.cardCountNoVariants, els.cardCountUnique].forEach(el => {
+[els.cardCountWithVariants, els.cardCountNoVariants, els.cardCountUnique].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
 });
 
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/Card Counts for "${label}"?`)) return;
+  if (!confirm(`Clear saved Card Counts for "${label}"?`)) return;
   lastClearedTypeContent = { type, data: typeContent[type] };
   delete typeContent[type];
   saveTypeContentState();
@@ -915,7 +913,7 @@ els.undoClearTypeContentBtn.addEventListener('click', () => {
 
 // =========================================================================
 // Product Name history — Product Name has no sensible "default" to save
-// per profile or per type (unlike Tagline/Badges/etc.), since it's usually
+// per profile or per type (unlike Card Counts), since it's usually
 // different for every listing. Instead, remember every name that's ever
 // been used to generate images so a new listing that follows the same
 // naming pattern (e.g. "{Artist} Illustrator {Set} TCG") can be picked from
@@ -1463,7 +1461,7 @@ function getProduct() {
     name: els.productName.value.trim() || 'Your Product Name',
     gradeLevel: els.gradeLevel.value.trim(),
     subject: els.subject.value.trim(),
-    tagline: els.tagline.value.trim(),
+    tagline: FIXED_TAGLINE,
     typeDescriptor: formatCardCountDescriptor(),
     badges: FIXED_BADGES,
     zipFileCount: ZIP_FILE_COUNT,
