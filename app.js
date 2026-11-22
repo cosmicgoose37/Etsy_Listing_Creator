@@ -80,16 +80,18 @@ const COLOR_SCHEMES = [
 
 // =========================================================================
 // Shared product-data facts — every template pulls wording from here so the
-// same claim (page sizes, digital-only status, ZIP count) can't drift into
-// inconsistent copy across the 7 listing images. ZIP count is the one fact
-// that varies per seller (some bundle everything into one ZIP, others split
-// across several), so it comes from the "Number of ZIP files" field rather
-// than being fixed here.
+// same claim (page sizes, digital-only status, ZIP count, badges) can't
+// drift into inconsistent copy across the 7 listing images. These are fixed
+// rather than form fields because they're true of every listing this app
+// generates: one ZIP per placeholder size, and always just "Instant
+// Download" (this seller's listings don't offer the others this app could
+// show, like "Editable in Canva" or "Print & Go").
 // =========================================================================
 const PLACEHOLDER_SIZES = [9, 16, 25];
 const PLACEHOLDER_SIZES_LIST = PLACEHOLDER_SIZES.join(', ').replace(/, ([^,]*)$/, ' or $1');
 const IS_DIGITAL_PRODUCT = true;
-const DEFAULT_ZIP_FILE_COUNT = PLACEHOLDER_SIZES.length;
+const ZIP_FILE_COUNT = PLACEHOLDER_SIZES.length;
+const FIXED_BADGES = ['Instant Download'];
 const DIGITAL_DISCLAIMER = 'Digital product only • No physical item will be shipped';
 
 function zipFileWord(count) {
@@ -167,8 +169,6 @@ const els = {
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
   undoClearTypeContentBtn: document.getElementById('undoClearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
-  badgeOptions: document.getElementById('badgeOptions'),
-  zipFileCount: document.getElementById('zipFileCount'),
   gallery: document.getElementById('gallery'),
   emptyState: document.getElementById('emptyState'),
   validationWarnings: document.getElementById('validationWarnings'),
@@ -803,32 +803,18 @@ function missingChecklistImageLabels() {
   return CHECKLIST_IMAGE_KEYS.filter(key => !checklistImages[key]).map(key => CHECKLIST_IMAGE_LABELS[key]);
 }
 
-// Some badges don't make sense for certain product types (e.g. a checklist
-// isn't "editable in Canva" or "no prep"). Types not listed here show every
-// badge — this is an allowlist only for types that need it trimmed down.
-const BADGE_ALLOWLIST_BY_TYPE = {
-  checklist: ['Instant Download', 'Printable', 'Black & White + Colour'],
-};
-
-function syncBadgeVisibility() {
-  const allowed = BADGE_ALLOWLIST_BY_TYPE[els.productType.value];
-  els.badgeOptions.querySelectorAll('.chip').forEach(chip => {
-    const cb = chip.querySelector('input[type=checkbox]');
-    const show = !allowed || allowed.includes(cb.value);
-    chip.hidden = !show;
-    if (!show && cb.checked) cb.checked = false;
-  });
-}
-
 // =========================================================================
-// Per-product-type content — Tagline, What's Included, and Badges are
-// remembered per Product Type rather than per brand profile, since the
-// same kind of listing tends to reuse the same wording/badges regardless
-// of which shop it's for.
+// Per-product-type content — Tagline and card counts are remembered per
+// Product Type rather than per brand profile, since the same kind of
+// listing tends to reuse the same wording regardless of which shop it's
+// for. Badges and ZIP count used to be form fields here too, but every
+// listing this seller makes uses the same values (Instant Download only,
+// 3 ZIP files), so they're hardcoded below (see FIXED_BADGES) instead of
+// being a control nobody ever changed.
 // =========================================================================
 const TYPE_CONTENT_KEY = 'etsyImageMaker.typeContent.v1';
 const DEFAULT_TAGLINE = 'Plan your binder. Track your collection.';
-const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountWithVariants: '', cardCountNoVariants: '', cardCountUnique: '', badges: ['Instant Download'], zipFileCount: DEFAULT_ZIP_FILE_COUNT };
+const DEFAULT_TYPE_CONTENT = { tagline: DEFAULT_TAGLINE, cardCountWithVariants: '', cardCountNoVariants: '', cardCountUnique: '' };
 
 function loadTypeContent() {
   try {
@@ -869,8 +855,6 @@ function saveCurrentFieldsToType() {
     cardCountWithVariants: els.cardCountWithVariants.value,
     cardCountNoVariants: els.cardCountNoVariants.value,
     cardCountUnique: els.cardCountUnique.value,
-    badges: [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value),
-    zipFileCount: els.zipFileCount.value,
   };
   saveTypeContentState();
   updateTypeContentStatus();
@@ -883,14 +867,6 @@ function applyTypeContent(type) {
   els.cardCountWithVariants.value = saved.cardCountWithVariants || '';
   els.cardCountNoVariants.value = saved.cardCountNoVariants || '';
   els.cardCountUnique.value = saved.cardCountUnique || '';
-  els.zipFileCount.value = saved.zipFileCount || DEFAULT_ZIP_FILE_COUNT;
-  // Badges saved before the British-spelling change still restore.
-  const checkedSet = new Set((saved.badges || []).map(b => (
-    b === 'Black & White + Color' ? 'Black & White + Colour' : b
-  )));
-  els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
-    cb.checked = checkedSet.has(cb.value);
-  });
   suppressTypeContentSave = false;
 }
 
@@ -899,27 +875,22 @@ function handleProductTypeChange() {
   syncGradeSubjectVisibility();
   syncChecklistImagesVisibility();
   applyTypeContent(els.productType.value);
-  syncBadgeVisibility();
   updateTypeContentStatus();
 }
 els.productType.addEventListener('change', handleProductTypeChange);
 
-[els.tagline, els.cardCountWithVariants, els.cardCountNoVariants, els.cardCountUnique, els.zipFileCount].forEach(el => {
+[els.tagline, els.cardCountWithVariants, els.cardCountNoVariants, els.cardCountUnique].forEach(el => {
   el.addEventListener('input', saveCurrentFieldsToType);
-});
-els.badgeOptions.querySelectorAll('input[type=checkbox]').forEach(cb => {
-  cb.addEventListener('change', saveCurrentFieldsToType);
 });
 
 els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
-  if (!confirm(`Clear saved Tagline/Card Counts/Badges/ZIP count for "${label}"?`)) return;
+  if (!confirm(`Clear saved Tagline/Card Counts for "${label}"?`)) return;
   lastClearedTypeContent = { type, data: typeContent[type] };
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
-  syncBadgeVisibility();
   updateTypeContentStatus();
   els.undoClearTypeContentBtn.hidden = false;
   setStatus('Cleared saved content for this type.');
@@ -936,7 +907,6 @@ els.undoClearTypeContentBtn.addEventListener('click', () => {
   saveTypeContentState();
   if (els.productType.value === type) {
     applyTypeContent(type);
-    syncBadgeVisibility();
   }
   updateTypeContentStatus();
   hideUndoClearTypeContent();
@@ -1003,7 +973,6 @@ renderProductNameHistory();
 syncGradeSubjectVisibility();
 syncChecklistImagesVisibility();
 applyTypeContent(els.productType.value);
-syncBadgeVisibility();
 updateTypeContentStatus();
 
 // ---- hex <-> color-picker sync ----
@@ -1489,7 +1458,6 @@ function formatCardCountDescriptor() {
 }
 
 function getProduct() {
-  const badges = [...els.badgeOptions.querySelectorAll('input[type=checkbox]:checked')].map(cb => cb.value);
   return {
     type: els.productType.value,
     name: els.productName.value.trim() || 'Your Product Name',
@@ -1497,8 +1465,8 @@ function getProduct() {
     subject: els.subject.value.trim(),
     tagline: els.tagline.value.trim(),
     typeDescriptor: formatCardCountDescriptor(),
-    badges,
-    zipFileCount: Math.max(1, parseInt(els.zipFileCount.value, 10) || DEFAULT_ZIP_FILE_COUNT),
+    badges: FIXED_BADGES,
+    zipFileCount: ZIP_FILE_COUNT,
   };
 }
 
@@ -2743,7 +2711,7 @@ function drawChecklistGuide(ctx, brand, product, images, watermark) {
 // post-purchase walkthrough regardless of which product this happens to be.
 // A function rather than a plain constant so the ZIP step can pluralize
 // correctly based on the seller's own "Number of ZIP files" setting.
-function getDownloadReadySteps(zipCount = DEFAULT_ZIP_FILE_COUNT) {
+function getDownloadReadySteps(zipCount = ZIP_FILE_COUNT) {
   if (zipCount === PLACEHOLDER_SIZES.length) {
     // One ZIP per size (the standard packaging) — the size is picked by
     // choosing which ZIP to open, before unzipping ever reveals the
