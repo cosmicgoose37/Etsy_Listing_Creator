@@ -715,7 +715,7 @@ async function handleQuickSetupFiles(fileList) {
   // already-saved Company Name happens to still be the leading segment
   // (i.e. this particular file name was short enough to keep it), it's
   // stripped off so it doesn't end up duplicated into the product name.
-  const checklistFile = files.find(f => /_Fillable_Checklist(?:_[A-Za-z]+)?\.pdf$/i.test(f.name));
+  const checklistFile = files.find(f => /_Fillable_Checklist(?:_[A-Za-z]+)*\.pdf$/i.test(f.name));
   const zipFiles = files.filter(f => /\.zip$/i.test(f.name));
   const shop = els.companyName.value.trim();
   const shopPrefixRe = shop
@@ -726,7 +726,7 @@ async function handleQuickSetupFiles(fileList) {
   let productName = null;
 
   if (checklistFile) {
-    const m = checklistFile.name.match(/^\d+_(.+?)_Fillable_Checklist(?:_[A-Za-z]+)?\.pdf$/i);
+    const m = checklistFile.name.match(/^\d+_(.+?)_Fillable_Checklist(?:_[A-Za-z]+)*\.pdf$/i);
     if (m) {
       productName = stripShopPrefix(m[1]).replace(/_/g, ' ');
     } else {
@@ -755,7 +755,7 @@ async function handleQuickSetupFiles(fileList) {
 
   const sizeOrder = { '9': 0, '16': 1, '25': 2 };
   const parsedZips = zipFiles.map(f => {
-    const m = f.name.match(/^\d+_(.+?)_Placeholders_(\d+)_Per_Page(?:_[A-Za-z]+)?\.zip$/i);
+    const m = f.name.match(/^\d+_(.+?)_Placeholders_(\d+)_Per_Page(?:_[A-Za-z]+)*\.zip$/i);
     return m ? { file: f, product: stripShopPrefix(m[1]).replace(/_/g, ' '), size: m[2] } : null;
   }).filter(Boolean).sort((a, b) => (sizeOrder[a.size] ?? 99) - (sizeOrder[b.size] ?? 99));
 
@@ -782,8 +782,8 @@ async function handleQuickSetupFiles(fileList) {
       continue;
     }
     const entries = Object.values(zip.files);
-    const colorEntry = entries.find(f => /_Colou?r(?:_[A-Za-z]+)?\.pdf$/i.test(f.name));
-    const greyEntry = entries.find(f => /_Gr[ae]yscale(?:_[A-Za-z]+)?\.pdf$/i.test(f.name));
+    const colorEntry = entries.find(f => /_Colou?r(?:_[A-Za-z]+)*\.pdf$/i.test(f.name));
+    const greyEntry = entries.find(f => /_Gr[ae]yscale(?:_[A-Za-z]+)*\.pdf$/i.test(f.name));
 
     if (colorEntry) {
       try {
