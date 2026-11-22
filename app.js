@@ -182,6 +182,7 @@ const els = {
   cardCountNoVariants: document.getElementById('cardCountNoVariants'),
   cardCountUnique: document.getElementById('cardCountUnique'),
   clearTypeContentBtn: document.getElementById('clearTypeContentBtn'),
+  undoClearTypeContentBtn: document.getElementById('undoClearTypeContentBtn'),
   typeContentStatus: document.getElementById('typeContentStatus'),
   badgeOptions: document.getElementById('badgeOptions'),
   zipFileCount: document.getElementById('zipFileCount'),
@@ -916,6 +917,15 @@ function loadTypeContent() {
 
 let typeContent = loadTypeContent();
 let suppressTypeContentSave = false;
+// One-step undo for the "clear saved content" button below — holds the
+// just-cleared type's previous data until the user edits a field, switches
+// product type, clears again, or uses it, whichever comes first.
+let lastClearedTypeContent = null;
+
+function hideUndoClearTypeContent() {
+  lastClearedTypeContent = null;
+  els.undoClearTypeContentBtn.hidden = true;
+}
 
 function saveTypeContentState() {
   localStorage.setItem(TYPE_CONTENT_KEY, JSON.stringify(typeContent));
@@ -930,6 +940,7 @@ function updateTypeContentStatus() {
 
 function saveCurrentFieldsToType() {
   if (suppressTypeContentSave) return;
+  hideUndoClearTypeContent();
   typeContent[els.productType.value] = {
     tagline: els.tagline.value,
     cardCountWithVariants: els.cardCountWithVariants.value,
@@ -961,6 +972,7 @@ function applyTypeContent(type) {
 }
 
 function handleProductTypeChange() {
+  hideUndoClearTypeContent();
   syncGradeSubjectVisibility();
   syncChecklistImagesVisibility();
   applyTypeContent(els.productType.value);
@@ -980,12 +992,32 @@ els.clearTypeContentBtn.addEventListener('click', () => {
   const type = els.productType.value;
   const label = els.productType.options[els.productType.selectedIndex].text;
   if (!confirm(`Clear saved Tagline/Card Counts/Badges/ZIP count for "${label}"?`)) return;
+  lastClearedTypeContent = { type, data: typeContent[type] };
   delete typeContent[type];
   saveTypeContentState();
   applyTypeContent(type);
   syncBadgeVisibility();
   updateTypeContentStatus();
+  els.undoClearTypeContentBtn.hidden = false;
   setStatus('Cleared saved content for this type.');
+});
+
+els.undoClearTypeContentBtn.addEventListener('click', () => {
+  if (!lastClearedTypeContent) return;
+  const { type, data } = lastClearedTypeContent;
+  if (data) {
+    typeContent[type] = data;
+  } else {
+    delete typeContent[type];
+  }
+  saveTypeContentState();
+  if (els.productType.value === type) {
+    applyTypeContent(type);
+    syncBadgeVisibility();
+  }
+  updateTypeContentStatus();
+  hideUndoClearTypeContent();
+  setStatus('Restored saved content for this type.');
 });
 
 // =========================================================================
